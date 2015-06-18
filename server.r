@@ -3,7 +3,7 @@ library(leaflet)
 library(NCRNbirds)
 library(dplyr)
 library(magrittr)
-library(tidyr)
+library(jsonlite, pos=100)
 NCRN<-importNCRNbirds("./Data/")
 shinyServer(function(input,output,session){
 
@@ -12,7 +12,6 @@ shinyServer(function(input,output,session){
   ##### Set up Map #############
   
   output$BirdMap<-renderLeaflet({leaflet() %>%
-      #addTiles("//{s}.tiles.mapbox.com/v4/nps.2yxv8n84,nps.jhd2e8lb/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q") %>% 
      setView(lng=-77.8,lat=39.03,zoom=9)
   })
 
@@ -57,23 +56,31 @@ shinyServer(function(input,output,session){
         return(P %>% mutate(Values=row_number() )) 
       },
       
-      richness={
-        return(P %>% group_by(Plot_Name) %>% mutate(Values=birdRichness(NCRN,points=Plot_Name, years=input$MapYear)))
-        },
+      richness={withProgress(message="Calculating...  Please Wait",value=1,
+                return(P %>% group_by(Plot_Name) %>% mutate(Values=birdRichness(NCRN,points=Plot_Name, years=input$MapYear)))
+        )},
       
       individual={
         X<-CountXVisit(object=NCRN,years=input$MapYear,AOU=input$MapSpecies)
         switch(input$SpeciesValues,
           "Visit 1"={return(P %>% left_join(X %>% dplyr::select(Plot_Name,Visit1) %>% 
-                                              transmute(Plot_Name=Plot_Name,Values=Visit1) ) )},
+                                              rename(Values=Visit1) ) )},
           "Visit 2" ={return(P %>% left_join(X %>% dplyr::select(Plot_Name,Visit2) %>% 
-                                              transmute(Plot_Name=Plot_Name,Values=Visit2) ) )},
+                                              rename(Values=Visit2) ) )},
           "Maximum Observed"={return(P %>% left_join(X %>% dplyr::select(Plot_Name,Visit1,Visit2) %>% 
                                                        transmute(Plot_Name=Plot_Name,Values=pmax(Visit1,Visit2,na.rm=TRUE) ) ))}
         )
       } 
     )
     
+  })
+  
+  #### Circle Lengends
+  circleLegend<-reactive({
+    switch(input$MapValues,
+           nothing="Test Legend",
+           richness="# of Species",
+           individual="Number of Birds Observed")
   })
   
   ### Color funciton for circles
@@ -83,12 +90,12 @@ shinyServer(function(input,output,session){
 
   ### Update Map Circles and the legend
        observe({
-         leafletProxy("BirdMap") %>%   
-         clearShapes() %>% 
-           addCircles(data=circleData(), color=MapColors()(circleData()$Values),
+         leafletProxy("BirdMap") %>%  
+          clearShapes() %>% 
+          addCircles(data=circleData(), color=MapColors()(circleData()$Values),
                      fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=50, fillOpacity = 0.8,
                      popup=paste0(circleData()$Plot_Name," : ",circleData()$Values)) %>% 
-          addLegend(layerId="CircleLegned",pal=MapColors(), values=circleData()$Values,na.label="Not Visited", title="test legend")
+          addLegend(layerId="CircleLegned",pal=MapColors(), values=circleData()$Values,na.label="Not Visited", title=circleLegend())
         })
   
 })
