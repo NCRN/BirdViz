@@ -15,31 +15,77 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       tags$head(HTML('<link rel="icon", href="AH_small_flat_4C_12x16.png", type="image/png" />')), #icon for broswer tab
       leafletOutput("BirdMap", width = "100%", height = "100%")
     ),
-                 
-                 ################ Map Controls Box
-                 
+    
+     ################ Map Controls Box
+    
     fixedPanel(class="panel panel-default controls", draggable = TRUE, cursor="auto", top="80px", bottom="auto",
-                height="auto", right="150px", left="auto", width="200px",
+                height="auto", right="150px", left="auto", width="250px", id="MapControlPanel",
       
       h4("Map Controls",class="panel-heading"),
       
-      selectizeInput(inputId="MapValues", label="Data to Map", choices=c("Nothing Really"="nothing",
-                   "Species Numbers"="richness", "Individual Species"="individual")
+      textOutput("Test"),
+
+      radioButtons(inputId="MapValues", label="Data to Map", choices=c("Individual Species"="individual",
+                                      "Species Numbers"="richness", "Bird Community Index (BCI)"="bci"),inline=F
       ),
       
       div(id="SpeciesControls", 
        selectizeInput(inputId="MapSpecies",choices=NULL,label="Species"), #updated in server.r
-       selectizeInput(inputId="SpeciesValues", label="Data", choices=c("Visit 1", "Visit 2", "Maximum Observed"))
+       selectizeInput(inputId="SpeciesValues", label="Data", choices=c("Maximum Observed", "Visit 1", "Visit 2"))
       ),
       
-      sliderInput(inputId="MapYear", label="Select a year:", min=2007,max=2014,value=2014, sep="",step=1,ticks=TRUE)
+      sliderInput(inputId="MapYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T),
+      hr(),
+      radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)
+    ),
+   
+    
+    
+
+    ###### Zoom Box 
+    fixedPanel(class="panel panel-default controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="auto",
+                  left=50,width=250,id="ZoomPanel",
+      h4("Zoom to:"),
+    fluidRow(
+     column(9,tags$div(title="Choose a park and click 'Go'", uiOutput("ParkZoomControl"))),
+      column(3,actionButton(class="btn btn-primary btn-sm", inputId="Zoom", label="Go")) 
+             ),
+      
+         hr(),
+        tags$div(title="Increases size of plots for easier viewing",
+            radioButtons(inputId="PointSize", label=h4("Point size:"), 
+                  choices=c("1X (to scale)"=1, "5X"=sqrt(5)), selected="1", inline=TRUE)
+        )
+      
     ),
     
-    fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="85%", bottom="auto",
-              height="auto", left="120px", width="180px",
-      strong("Base Layer"),
-      radioButtons(inputId="MapBase",label=NULL,choices=c("Map","Imagery"), selected="Map", inline=TRUE)
+    
+#     ######  Base Layer BoX
+#     
+#     fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="80%", bottom="auto",
+#                height="auto", left="120px", width="250px",id="BaseLayerPanel",
+#                strong("Base Layer:"),
+#                radioButtons(inputId="MapBase",label=NULL,choices=c("Map","Imagery","Slate"), selected="Map", inline=TRUE)
+#     ),
+#     
+    ####  Show/Hide Panel
+    
+    fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="90%", bottom="auto",
+               height="auto", left="120px", width="425px",
+               checkboxGroupInput(inputId="MapHide", label=strong("Show:"),inline=TRUE,
+                                  choices=c("Map Controls"="MapControls", "Legend", "Zoom","Base Layers"="BaseLayers"),
+                                  selected=c("MapControls","Legend","Zoom","BaseLayers")
+                )
+               
+               
     )
+    
+    
+    
+    
+    
+    
+    
   ),
   tabPanel("Map Data", h2("test2"))
 )

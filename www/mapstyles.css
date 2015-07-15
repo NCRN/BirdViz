@@ -20,6 +20,8 @@ body, label, input, button, select {
 
 h1, h2, h3, h4 { font-weight: 400; }
 
+hr {margin: 5px;}
+
 .controls {                           
 
 /* Appearance */
@@ -83,15 +85,12 @@ padding: 0 0 0 0;
 }
 
 .shiny-progress .progress{
-  height: 8px;
+  height: 10px;
 }
 
 .navbar .container {
   margin-left: 0px;
   height: 70px;
 }
-
-
-
 
 
