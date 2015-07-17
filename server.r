@@ -4,6 +4,8 @@ library(NCRNbirds)
 library(dplyr)
 library(magrittr)
 library(jsonlite, pos=100)
+library(rgdal)
+
 NCRN<-importNCRNbirds("./Data/")
 ParkList<-getParkNames(NCRN, name.class="code")
 names(ParkList)<-getParkNames(NCRN, name.class="short")
@@ -14,7 +16,7 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
 shinyServer(function(input,output,session){
   
-  output$Test<-renderPrint(input$MapHide)
+  output$Test<-renderPrint(input$BirdMap_shape_click$group)
   ##### Set up Map #############
   
   output$BirdMap<-renderLeaflet({leaflet() %>%
@@ -28,7 +30,6 @@ shinyServer(function(input,output,session){
     toggleState( id='SpeciesValues', condition=( input$MapSpecies!=""))
     toggle(id="MapControlPanel", condition=("MapControls" %in% input$MapHide))
     toggle(id="ZoomPanel", condition=("Zoom" %in% input$MapHide))
-   # toggle(id="BaseLayerPanel", condition=("BaseLayers" %in% input$MapHide))
   })
   
 
@@ -62,7 +63,10 @@ shinyServer(function(input,output,session){
     addTiles(group="Imagery", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.map-n9nxe12m,nps.gdipreks,nps.jhd2e8lb/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q") %>% 
     addTiles(group="Slate", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.68926899,nps.502a840b/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q" ) %>% 
     {if("BaseLayers" %in% input$MapHide) 
-    addLayersControl(map=., baseGroups=c("Map","Imagery","Slate"),options=layersControlOptions(collapsed=F))}
+      
+    addLayersControl(map=., baseGroups=c("Map","Imagery","Slate"),
+                     overlayGroups=c("Ecoregions","Circles"),
+                     options=layersControlOptions(collapsed=F,autoZIndex = F))}
 })
 
   ### Hide Layers Control
@@ -139,65 +143,67 @@ shinyServer(function(input,output,session){
   ### Add Map Circle
   observe({
     leafletProxy("BirdMap") %>%  
-    clearShapes() %>% 
-    addCircles(data=circleData(), layerId=circleData()$Point_Name, color=MapColors()(circleData()$Values),
+    clearGroup("Circles") %>% 
+    addCircles(data=circleData(), layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
           fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=50*as.numeric(input$PointSize), fillOpacity = 0.8) 
   })
   
   ### Add Legend
  observe({ 
     leafletProxy("BirdMap") %>% 
-     clearControls() %>% 
+     removeControl(layerId="CircleLegend") %>% 
      {if("Legend" %in% input$MapHide) 
         addLegend(map=., layerId="CircleLegend",pal=MapColors(), values= circleData()$Values, 
              na.label="Not Visited", title=circleLegend(), className="panel panel-default info legend")}
   })
   
+ ### User Clicks on map not on a shape - popups close
+
+ observeEvent(input$BirdMap_click, {
+   leafletProxy("BirdMap") %>% 
+     clearPopups()
+ })
   
   
-  ## Popup for user clicking a circle
+  ## Popup for user clicking on a shape
   observeEvent(input$BirdMap_shape_click, {  
-    cl_Cir<-input$BirdMap_shape_click
+    
+    ShapeClick<-input$BirdMap_shape_click
+    
     leafletProxy("BirdMap") %>% 
-        clearPopups() %>% 
-        addPopups(lat=cl_Cir$lat, lng=cl_Cir$lng, 
-            popup=switch(input$MapValues,
+      clearPopups() %>% {
+      switch(ShapeClick$group,
+        Circles= addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, 
+          popup=switch(input$MapValues,
+            
+            richness=  paste(collapse="<br/>",
+              paste(ShapeClick$id, ':',circleData()[circleData()$Point_Name==ShapeClick$id,]$Values, 
+                  "Species","<br/>","<br/>",collapse=" "),
+              paste(getBirdNames(object=NCRN[[1]],names=getChecklist(NCRN,points=ShapeClick$id, years=input$MapYear),
+                                 in.style="AOU", out.style=input$MapNames),collapse="<br/>") ),
                 
-                richness=  paste(collapse="<br/>",
-                    paste(cl_Cir$id, ':',circleData()[circleData()$Point_Name==cl_Cir$id,]$Values, "Species","<br/>","<br/>",collapse=" "),
-                    paste(getBirdNames(object=NCRN[[1]],names=getChecklist(NCRN,points=cl_Cir$id, years=input$MapYear), in.style="AOU", 
-                                       out.style=input$MapNames),collapse="<br/>") ),
+            individual=paste(collapse="<br/>", 
+                paste(ShapeClick$id,"<br/>"),
+                paste(circleData()[circleData()$Point_Name==ShapeClick$id,]$Values,"detected", collapse=" ")),
                 
-                individual=paste(collapse="<br/>", 
-                                 paste(cl_Cir$id,"<br/>"),
-                                 paste(circleData()[circleData()$Point_Name==cl_Cir$id,]$Values,"detected", collapse=" ")),
-                
-                bci=paste(sep="<br/>", cl_Cir$id, paste0('BCI Value: ',circleData()[circleData()$Point_Name==cl_Cir$id,]$BCI),
-                          paste('BCI Category: ', circleData()[circleData()$Point_Name==cl_Cir$id,]$Values) )
+            bci=paste(sep="<br/>", ShapeClick$id, paste0('BCI Value: ',circleData()[circleData()$Point_Name==ShapeClick$id,]$BCI),
+                      paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeClick$id,]$Values) )
             )
-        )
+        ),
+        Ecoregions=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id)
+      )}
   })
   
   ### Add additional layers
   
-#   Ecoreg<-readLines("T:/I&M/MONITORING/Forest_Birds/BirdViz/Maps/ecoregion.geojson") %>% paste(collapse="\n") %>% fromJSON(simplifyVector=FALSE)
-#   
-#   Ecoreg_Facs<-unique( sapply(Ecoreg$features, function(feat) {feat$properties$Simplified}) )
-#   
-#   LayerColors<-colorFactor("RdYlBu", levels=Ecoreg_Facs)
-#   
-#   Ecoreg$features <- lapply(Ecoreg$features, function(feat) {
-#     feat$properties$style <- list(
-#       fillColor = LayerColors(feat$properties$Simplified),
-#       color=LayerColors(feat$properties$Simplified),
-#       opacity=0.75
-#     )
-#     feat
-#   })
-#   
-#   
-#   observe({leafletProxy("BirdMap") %>% 
-#             addGeoJSON(geojson=Ecoreg)
-#   })
+  Ecoregion<-readOGR(dsn="T:/I&M/MONITORING/Forest_Birds/BirdViz/Maps/ecoregion.geojson","OGRGeoJSON")
+   observe({
+     leafletProxy("BirdMap") %>% 
+       
+       addPolygons(data=Ecoregion, group="Ecoregions",layerId=Ecoregion$Level3_Nam, stroke=FALSE, fillOpacity=.65, 
+                   color=colorFactor("RdYlBu", levels=Ecoregion$Level3_Nam)(Ecoregion$Level3_Nam)) %>% 
+      addLegend(title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$Level3_Nam), values=Ecoregion$Level3_Nam) %>% 
+       showGroup(group="Circles")
+   })
   
 })
