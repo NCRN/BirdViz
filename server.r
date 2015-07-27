@@ -3,11 +3,15 @@ library(leaflet)
 library(NCRNbirds)
 library(dplyr)
 library(magrittr)
-library(jsonlite, pos=100)
 library(rgdal)
+library(DT)
+#library(jsonlite, pos=100)
+
+
 
 NCRN<-importNCRNbirds("./Data/")
 ParkList<-getParkNames(NCRN, name.class="code")
+names(NCRN)<-ParkList
 names(ParkList)<-getParkNames(NCRN, name.class="short")
 
 ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
@@ -15,8 +19,8 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
 
 shinyServer(function(input,output,session){
-  
-  output$Test<-renderPrint(input$BirdMap_shape_click$group)
+ 
+   output$Test<-renderPrint(class(input$TableYear[2]))
   ##### Set up Map #############
   
   output$BirdMap<-renderLeaflet({leaflet() %>%
@@ -26,16 +30,23 @@ shinyServer(function(input,output,session){
   
   ###toggles
   observe({
+    ### Maps
     toggle( id="SpeciesControls" , condition= (input$MapValues=="individual"))
     toggleState( id='SpeciesValues', condition=( input$MapSpecies!=""))
     toggle(id="MapControlPanel", condition=("MapControls" %in% input$MapHide))
     toggle(id="ZoomPanel", condition=("Zoom" %in% input$MapHide))
+    toggle(id="ExtraLayerPanel", condition=("ExtraLayers" %in% input$MapHide))
+    
+    ### Tables
+    toggle(id="TableSpecies", condition=input$TableValues=="individual")
+    toggle(id="TableBand", condition=input$TableValues=="individual")
+    toggle(id="TableNames", condition=input$TableValues=="individual")
   })
   
 
   ### Reactive Map UI Widgets
   
-  #### List of species for map
+  #### List of species for map - needs to be named list.
   
   BirdNames<-reactive({
     BN<-getChecklist(object =  NCRN, years=input$MapYear,band=1)
@@ -65,8 +76,7 @@ shinyServer(function(input,output,session){
     {if("BaseLayers" %in% input$MapHide) 
       
     addLayersControl(map=., baseGroups=c("Map","Imagery","Slate"),
-                     overlayGroups=c("Ecoregions","Circles"),
-                     options=layersControlOptions(collapsed=F,autoZIndex = F))}
+                     options=layersControlOptions(collapsed=F))}
 })
 
   ### Hide Layers Control
@@ -82,7 +92,7 @@ shinyServer(function(input,output,session){
    
 #   ############Zoom the map
    observe({
-     input$MapZoom
+     input$Zoom
       isolate({
         BoundsUse<-reactive({ as.numeric(ParkBounds[ParkBounds$ParkCode==input$ParkZoom,2:5]) })
       leafletProxy("BirdMap") %>% fitBounds(lat1=BoundsUse()[1],lng1=BoundsUse()[2],lat2=BoundsUse()[3],lng2=BoundsUse()[4])
@@ -127,7 +137,7 @@ shinyServer(function(input,output,session){
   circleLegend<-reactive({
     switch(input$MapValues,
            richness="# of Species",
-           individual="# Observed",
+           individual=paste(getBirdNames(object=NCRN[[1]], names =  input$MapSpecies, in.style="AOU", out.style = input$MapNames), "<br>", " Observed"),
            bci="Bird Community Index")
   })
   
@@ -142,6 +152,7 @@ shinyServer(function(input,output,session){
 
   ### Add Map Circle
   observe({
+    input$Layers
     leafletProxy("BirdMap") %>%  
     clearGroup("Circles") %>% 
     addCircles(data=circleData(), layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
@@ -152,9 +163,9 @@ shinyServer(function(input,output,session){
  observe({ 
     leafletProxy("BirdMap") %>% 
      removeControl(layerId="CircleLegend") %>% 
-     {if("Legend" %in% input$MapHide) 
+     {if("Legends" %in% input$MapHide) 
         addLegend(map=., layerId="CircleLegend",pal=MapColors(), values= circleData()$Values, 
-             na.label="Not Visited", title=circleLegend(), className="panel panel-default info legend")}
+             na.label="Not Visited", title=circleLegend() )} #, className="panel panel-default info legend"
   })
   
  ### User Clicks on map not on a shape - popups close
@@ -179,8 +190,7 @@ shinyServer(function(input,output,session){
             richness=  paste(collapse="<br/>",
               paste(ShapeClick$id, ':',circleData()[circleData()$Point_Name==ShapeClick$id,]$Values, 
                   "Species","<br/>","<br/>",collapse=" "),
-              paste(getBirdNames(object=NCRN[[1]],names=getChecklist(NCRN,points=ShapeClick$id, years=input$MapYear),
-                                 in.style="AOU", out.style=input$MapNames),collapse="<br/>") ),
+              paste(getChecklist(NCRN,points=ShapeClick$id, years=input$MapYear, out.style=input$MapNames),collapse="<br/>") ),
                 
             individual=paste(collapse="<br/>", 
                 paste(ShapeClick$id,"<br/>"),
@@ -190,20 +200,137 @@ shinyServer(function(input,output,session){
                       paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeClick$id,]$Values) )
             )
         ),
-        Ecoregions=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id)
+        Ecoregions=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
+        Forested=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id)
       )}
   })
   
   ### Add additional layers
   
   Ecoregion<-readOGR(dsn="T:/I&M/MONITORING/Forest_Birds/BirdViz/Maps/ecoregion.geojson","OGRGeoJSON")
-   observe({
-     leafletProxy("BirdMap") %>% 
-       
-       addPolygons(data=Ecoregion, group="Ecoregions",layerId=Ecoregion$Level3_Nam, stroke=FALSE, fillOpacity=.65, 
-                   color=colorFactor("RdYlBu", levels=Ecoregion$Level3_Nam)(Ecoregion$Level3_Nam)) %>% 
-      addLegend(title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$Level3_Nam), values=Ecoregion$Level3_Nam) %>% 
-       showGroup(group="Circles")
-   })
+  Forested<-readOGR(dsn="T:/I&M/MONITORING/Forest_Birds/BirdViz/Maps/Forests.geojson","OGRGeoJSON")
   
-})
+  observe({
+    
+   leafletProxy("BirdMap") %>% {
+     switch(input$Layers,
+      None=clearGroup(.,group=c("Ecoregions","Forested")) %>% removeControl(.,"LayerLegend"),
+          
+      Ecoregions=clearGroup(.,group="Forested") %>% 
+            addPolygons(.,data=Ecoregion, group="Ecoregions",layerId=Ecoregion$Level3_Nam, stroke=FALSE, 
+                              fillOpacity=.65, color=colorFactor("RdYlBu", levels=Ecoregion$Level3_Nam)(Ecoregion$Level3_Nam)),
+    
+      Forested=clearGroup(.,group="Ecoregions") %>% 
+            addPolygons(.,data=Forested, group="Forested", layerId=Forested$MapClass, stroke=FALSE, 
+                               fillOpacity=.65, color=colorFactor("Greens",levels=Forested$MapClass)(Forested$MapClass)) 
+
+   )}
+  })
+  ### Add layer legends
+  observe({
+  leafletProxy("BirdMap") %>%   removeControl(layerId="LayerLegend") %>%
+      {if("Legends" %in% input$MapHide) 
+        switch(input$Layers,
+          None=NA,
+          Ecoregions= addLegend(.,title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$Level3_Nam), 
+                                     values=Ecoregion$Level3_Nam, layerId="LayerLegend"),
+          
+          Forested= addLegend(.,title="Layer Legend",pal=colorFactor("Greens",levels=Forested$MapClass), values=Forested$MapClass,
+              layerId="LayerLegend")
+      )}
+  })
+  
+  #########################################  Data Table Funcitons  ########################################################
+  
+  
+  #   #### Park control for tables
+  output$ParkTableSelect<-renderUI({
+    selectInput(inputId="ParkTable",label="Park", choices=c("All Parks"="All", ParkList ) ) 
+  })
+  
+  
+  
+  BirdTableNames<-reactive({
+    BN2<-getChecklist(object =NCRN) #, years=input$TableYear, band=1)
+    TempNames2<-getBirdNames(object=NCRN[[1]], names=BN2, in.style="AOU", out.style=input$TableNames)
+    TempNames2[is.na(TempNames2)]<-"Needs Name"
+    names(BN2)<-TempNames2
+    BN2 [order(TempNames2)]
+  })
+  
+  
+  
+  observe({
+    updateSelectizeInput(session,inputId="TableSpecies",label="Species", choices=BirdTableNames())
+  })
+  
+  TableParkUse<-reactive({ if (input$ParkTable=="All") NCRN else NCRN[input$ParkTable] })
+  
+  ### Data for the Table
+  
+  DataOut<-reactive({
+    validate(
+      need(input$ParkTable, "Working...")
+    )
+    switch(input$TableValues,
+      individual= CountXVisit(object=TableParkUse(), 
+                      years=input$TableYear[1]:input$TableYear[2], 
+                      band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)), 
+                      AOU=input$TableSpecies) %>% 
+                  rename("Visit 1"= Visit1, "Visit 2"=Visit2) %>% 
+                  mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name) ) %>% 
+                      dplyr::select(Park, `Point Name`, Year, `Visit 1`,`Visit 2`),
+      
+      richness=getPoints(TableParkUse(),years=input$TableYear[1]:input$TableYear[2]) %>% 
+                  group_by(Point_Name) %>% 
+                  mutate(Species=birdRichness(TableParkUse(),points=Point_Name, years=input$TableYear[1]:input$TableYear[2])) %>% 
+                  ungroup() %>%
+                  mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name)) %>% 
+                  rowwise() %>% 
+                  mutate(Years=paste(range(getVisits(TableParkUse(),points=Point_Name,
+                              years=input$TableYear[1]:input$TableYear[2])$Year), collapse="-")) %>% 
+                  dplyr::select(Park,`Point Name`, Years,Species ),
+      
+      bci=BCI(object=TableParkUse(), years=input$TableYear[2]) %>%
+                    dplyr::select(Point_Name,BCI,BCI_Category) 
+
+      )
+  })
+  
+  
+  
+### Table title:
+  
+  output$TableTitle<-renderText({
+    switch(input$TableValues,
+           individual="Individual species table title",
+           richness=" Species richness title",
+           bci="BCI title"
+           
+           )
+    
+    
+  })
+  
+  ###Table Caption  
+  TableCaption<-reactive(
+    switch(input$TableValues,
+           individual="Individual species table caption",
+           richness=" Species richness caption",
+           bci="BCI caption"
+           
+    )
+    
+    
+    
+    
+  )
+  
+  
+    ### The table
+
+  output$DataTable<-DT::renderDataTable(expr=DataOut(), rownames=F,caption=TableCaption(), class="display compact"  )
+
+
+  
+}) #End Shiny Server function

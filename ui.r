@@ -19,14 +19,14 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
      ################ Map Controls Box
     
     fixedPanel(class="panel panel-default controls", draggable = TRUE, cursor="auto", top="80px", bottom="auto",
-                height="auto", right="150px", left="auto", width="250px", id="MapControlPanel",
+                height="auto", right="180px", left="auto", width="250px", id="MapControlPanel",
       
       h4("Map Controls",class="panel-heading"),
       
       textOutput("Test"),
 
       radioButtons(inputId="MapValues", label="Data to Map", choices=c("Individual Species"="individual",
-                                      "Species Numbers"="richness", "Bird Community Index (BCI)"="bci"),inline=F
+                                      "Number of Species"="richness", "Bird Community Index (BCI)"="bci"),inline=F
       ),
       
       div(id="SpeciesControls", 
@@ -60,32 +60,64 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     ),
     
     
-#     ######  Base Layer BoX
-#     
-#     fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="80%", bottom="auto",
-#                height="auto", left="120px", width="250px",id="BaseLayerPanel",
-#                strong("Base Layer:"),
-#                radioButtons(inputId="MapBase",label=NULL,choices=c("Map","Imagery","Slate"), selected="Map", inline=TRUE)
-#     ),
-#     
+#     ######  Extra Layer BoX
+    
+    fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="80%", bottom="auto",
+               height="auto", left="50px", width="auto",id="ExtraLayerPanel",
+               strong("Extra Layers:"),
+               radioButtons(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), selected="None", inline=TRUE)
+    ),
+    
     ####  Show/Hide Panel
     
     fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="90%", bottom="auto",
-               height="auto", left="120px", width="425px",
-               checkboxGroupInput(inputId="MapHide", label=strong("Show:"),inline=TRUE,
-                                  choices=c("Map Controls"="MapControls", "Legend", "Zoom","Base Layers"="BaseLayers"),
-                                  selected=c("MapControls","Legend","Zoom","BaseLayers")
-                )
-               
-               
+         height="auto", left="50px", width="auto",
+      checkboxGroupInput(inputId="MapHide", label=strong("Show:"),inline=TRUE,
+        choices=c("Zoom", "Map Controls"="MapControls", "Legends","Base Layers"="BaseLayers", "Extra Layers"="ExtraLayers"),
+        selected=c("MapControls","Legends","Zoom","BaseLayers","ExtraLayers")
+      )
     )
     
     
-    
-    
-    
-    
-    
   ),
-  tabPanel("Map Data", h2("test2"))
+  tabPanel("Data Tables",
+    column(3,
+      wellPanel(
+      h4(strong("Select Data:")),
+        
+        br(),
+       
+        radioButtons(inputId="TableValues", label="Type of Data", 
+          choices=c("Individual Species"="individual", "Number of Species"="richness", "Bird Community Index (BCI)"="bci"),
+          inline=F),
+       
+        uiOutput("ParkTableSelect")
+      ),
+      wellPanel(
+      
+      h4(strong("Options:")),
+      
+      br(),
+      
+      selectizeInput(inputId="TableSpecies",choices=NULL,label="Species"), #updated in server.r
+      
+      sliderInput(inputId="TableYear", label="Year:", min=2007,max=2014,value=c(2007,2014), sep="",step=1, ticks=T),
+      
+      radioButtons(inputId="TableBand", label="Distance from Observer:",
+                   choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")),
+      hr(),
+      radioButtons(inputId="TableNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)
+    
+           
+         
+    )
+    ),
+    
+    column(9, 
+           h2(textOutput("TableTitle")),
+           DT::dataTableOutput("DataTable"))
+    
+    
+  )
+           
 )
