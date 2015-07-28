@@ -101,7 +101,8 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       
       selectizeInput(inputId="TableSpecies",choices=NULL,label="Species"), #updated in server.r
       
-      sliderInput(inputId="TableYear", label="Year:", min=2007,max=2014,value=c(2007,2014), sep="",step=1, ticks=T),
+      sliderInput(inputId="TableYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T),
+      sliderInput(inputId="TableYear2", label="Year:", min=2007,max=2014,value=c(2007,2014), sep="",step=1, ticks=T),
       
       radioButtons(inputId="TableBand", label="Distance from Observer:",
                    choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")),
@@ -114,8 +115,16 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     ),
     
     column(9, 
-           h2(textOutput("TableTitle")),
-           DT::dataTableOutput("DataTable"))
+      h2(textOutput("ParkTableTitle")),
+      DT::dataTableOutput("DataTable2"),
+      br(),
+      br(),
+      hr(style="border: solid 1px black"),
+      h2(textOutput("TableTitle")),
+      DT::dataTableOutput("DataTable")
+
+
+    )
     
     
   )
