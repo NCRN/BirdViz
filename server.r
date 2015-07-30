@@ -5,6 +5,8 @@ library(dplyr)
 library(magrittr)
 library(rgdal)
 library(DT)
+library(ggvis)
+library(tidyr)
 #library(jsonlite, pos=100)
 
 
@@ -20,7 +22,7 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
 shinyServer(function(input,output,session){
  
-   output$Test<-renderPrint(class(input$TableYear[2]))
+  output$Test<-renderPrint(NULL)
   ##### Set up Map #############
   
   output$BirdMap<-renderLeaflet({leaflet() %>%
@@ -79,7 +81,7 @@ shinyServer(function(input,output,session){
       
     addLayersControl(map=., baseGroups=c("Map","Imagery","Slate"),
                      options=layersControlOptions(collapsed=F))}
-})
+  })
 
   ### Hide Layers Control
   observe({
@@ -93,13 +95,13 @@ shinyServer(function(input,output,session){
   })
    
 #   ############Zoom the map
-   observe({
+  observe({
      input$Zoom
       isolate({
         BoundsUse<-reactive({ as.numeric(ParkBounds[ParkBounds$ParkCode==input$ParkZoom,2:5]) })
       leafletProxy("BirdMap") %>% fitBounds(lat1=BoundsUse()[1],lng1=BoundsUse()[2],lat2=BoundsUse()[3],lng2=BoundsUse()[4])
       })
-      })
+  })
   
   
   ###### Circle Data 
@@ -139,7 +141,8 @@ shinyServer(function(input,output,session){
   circleLegend<-reactive({
     switch(input$MapValues,
            richness="# of Species",
-           individual=paste(getBirdNames(object=NCRN[[1]], names =  input$MapSpecies, in.style="AOU", out.style = input$MapNames), "<br>", " Observed"),
+           individual=paste(getBirdNames(object=NCRN[[1]], names =  input$MapSpecies, in.style="AOU", 
+                                         out.style = input$MapNames), "<br>", " Observed"),
            bci="Bird Community Index")
   })
   
@@ -208,9 +211,10 @@ shinyServer(function(input,output,session){
   })
   
   ### Add additional layers
-  
-  Ecoregion<-readOGR(dsn="T:/I&M/MONITORING/Forest_Birds/BirdViz/Maps/ecoregion.geojson","OGRGeoJSON")
-  Forested<-readOGR(dsn="T:/I&M/MONITORING/Forest_Birds/BirdViz/Maps/Forests.geojson","OGRGeoJSON")
+  withProgress(message="Loading ...  Please Wait",value=1,{
+    Ecoregion<-readOGR(dsn="T:/I&M/MONITORING/Forest_Birds/BirdViz/Maps/ecoregion.geojson","OGRGeoJSON")
+    Forested<-readOGR(dsn="T:/I&M/MONITORING/Forest_Birds/BirdViz/Maps/Forests.geojson","OGRGeoJSON")
+  })
   
   observe({
     
@@ -268,17 +272,29 @@ shinyServer(function(input,output,session){
   
   TableParkUse<-reactive({ if (input$ParkTable=="All") NCRN else NCRN[input$ParkTable] })
   
-  ### Data for the Table
+  ### Data for the Tables
+  
+  BaseData<-reactive({
+    switch(input$TableValues,
+           individual=CountXVisit(object=NCRN,
+                                  years=input$TableYear, 
+                                  band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)), 
+                                  AOU=input$TableSpecies),
+           richness=NA,
+           bci= withProgress(message="Calculating...  Please Wait",value=1,{
+             BCI(object=NCRN, years=input$TableYear)
+           })
+    )
+  })    
+  
   
   DataOut<-reactive({
     validate(
       need(input$ParkTable, "Working...")
     )
     switch(input$TableValues,
-      individual= CountXVisit(object=TableParkUse(), 
-                      years=input$TableYear, 
-                      band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)), 
-                      AOU=input$TableSpecies) %>% 
+      individual= BaseData() %>% 
+                  {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>% 
                   rename("Visit 1"= Visit1, "Visit 2"=Visit2) %>% 
                   mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name) ) %>% 
                       dplyr::select(Park, `Point Name`, Year, `Visit 1`,`Visit 2`),
@@ -294,30 +310,25 @@ shinyServer(function(input,output,session){
                           years=input$TableYear2[1]:input$TableYear2[2])$Year), collapse="-")) %>% 
                   dplyr::select(Park,`Point Name`, Years,Species ) }),
       
-      bci=BCI(object=TableParkUse(), years=input$TableYear) %>%
-                    dplyr::select(Point_Name,BCI,BCI_Category) 
-
+      bci=BaseData() %>% 
+      {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>%
+        dplyr::select(Point_Name,BCI,BCI_Category)
       )
   })
+  
   ParkDataOut<-reactive({
     validate(
       need(input$ParkTable, "Working...")
     )
     switch(input$TableValues,
-      individual= CountXVisit(NCRN,years=input$TableYear, 
-                              band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)), 
-                              AOU=input$TableSpecies) %>% 
+      individual= BaseData() %>% 
         group_by(Admin_Unit_Code) %>% 
         summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), "Mean Visit 2"= round( mean(Visit2, na.rm=T),digits=2)) %>%
         dplyr::select(`Mean Visit 1`,`Mean Visit 2`) %>%
-        rbind(c(
-          CountXVisit(NCRN,years=input$TableYear, 
-              band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)), 
-              AOU=input$TableSpecies) %>% 
-              
-          summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
-                        "Mean Visit 2"= round(mean(Visit2, na.rm=T),digits=2) ) %>% 
-                dplyr::select(`Mean Visit 1`,`Mean Visit 2`) %>% unname()) )%>% 
+        rbind(c(BaseData() %>% 
+                summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
+                          "Mean Visit 2"= round(mean(Visit2, na.rm=T),digits=2) ) %>% 
+                dplyr::select(`Mean Visit 1`,`Mean Visit 2`) %>% unname()) ) %>% 
         t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks")),
       
       richness= data.frame(c(birdRichness(NCRN,years=input$TableYear2[1]:input$TableYear2[2], output="list"), 
@@ -325,18 +336,15 @@ shinyServer(function(input,output,session){
                 "names<-"(c(getParkNames(NCRN),"All Parks")) %>% 
                   "row.names<-"("Species"),
       
-      bci=withProgress(message="Calculating...  Please Wait",value=1,{
-        BCI(NCRN,years=input$TableYear) %>% 
+      bci=BaseData() %>% 
         group_by(Admin_Unit_Code) %>% 
         summarize("Mean BCI" = round (mean(BCI), digits=1)) %>%    
         dplyr::select(`Mean BCI`) %>%
-        rbind(round(mean(BCI(NCRN,input$TableYear)$BCI),digits=1 )) %>% 
+        rbind(round(mean(BaseData()$BCI),digits=1 )) %>% 
           mutate("Park BCI Category"=
           c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")[findInterval(`Mean BCI`,
                                                                           vec=c(0,40.1,52.1,60.1,77.1))] ) %>% 
-        t() %>% 
-        "colnames<-"(c(getParkNames(NCRN),"All Parks"))
-      })   
+        t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks"))
     )
   })
   
@@ -345,20 +353,18 @@ shinyServer(function(input,output,session){
   
   output$TableTitle<-renderText({
     switch(input$TableValues,
-           individual="Individual species table title",
-           richness=" Species richness title",
-           bci="BCI title"
-           
+           individual=paste(getBirdNames(object=NCRN[[1]], names =  input$TableSpecies, 
+                                         in.style="AOU", out.style = input$TableNames)," Detections"),
+           richness="Number of Species Detected per Point",
+           bci="Bird Community Index per Point"
     )
-    
-    
   })
   
   ###Table Caption  
   TableCaption<-reactive({
     switch(input$TableValues,
            individual="Individual species table caption",
-           richness=" Species richness caption",
+           richness="richness caption",
            bci="BCI caption"
     )
   })
@@ -367,13 +373,11 @@ shinyServer(function(input,output,session){
   
   output$ParkTableTitle<-renderText({
     switch(input$TableValues,
-           individual="Park Individual species table title",
-           richness=" Park Species richness title",
-           bci=" Park BCI title"
-           
+           individual=paste("Mean",getBirdNames(object=NCRN[[1]], names =  input$TableSpecies, 
+                                         in.style="AOU", out.style = input$TableNames)," Detected per Point"),
+           richness="Number of Species Detected per Park",
+           bci="Bird Community Index per Park"
     )
-    
-    
   })
   
   ###Table Caption  
@@ -384,16 +388,67 @@ shinyServer(function(input,output,session){
            bci="BCI park caption"
     )
   })
-  
-  
-  
-  
     ### The tables
 
   output$DataTable<-DT::renderDataTable(expr=DataOut(), rownames=F,caption=input$TableValues, class="display compact"  )
   
   output$DataTable2<-DT::renderDataTable(expr=ParkDataOut(), caption=ParkTableCaption(), class="display compact",
                                          options=list(dom="t", ordering=FALSE))
+
+  
+  #############################  Plots Tab
+
+  
+  #   #### Park control for plots
+  output$ParkPlotSelect<-renderUI({
+    selectInput(inputId="ParkPlot",label="Park", choices=c("All Parks"="All", ParkList ) ) 
+  })
+  
+  PlotParkUse<-reactive({ if (input$ParkPlot=="All") NCRN else NCRN[input$ParkPlot] })
+  
+  BirdPlotNames<-reactive({
+    BN3<-getChecklist(object =NCRN) #, years=input$TableYear, band=1)
+    TempNames3<-getBirdNames(object=NCRN[[1]], names=BN3, in.style="AOU", out.style="common")
+    TempNames3[is.na(TempNames3)]<-"Needs Name"
+    names(BN3)<-TempNames3
+    BN3 [order(TempNames3)]
+  })
+  
+  
+  
+  observe({
+    updateSelectizeInput(session,inputId="PlotSpecies",label="Species", choices=BirdPlotNames())
+  })
+  
+  PlotData<-
+
+#     validate(
+#       need(input$ParkPlot, "Working...")
+#     )
+    
+    lapply(X=2007:2014, FUN=function(Z){CountXVisit(object=NCRN, years=Z, band=1, AOU="ACFL") %>%   
+        summarize("Visit 1"=round(mean(Visit1, na.rm=T),digits=2),
+                  "Visit 2"= round( mean(Visit2, na.rm=T),digits=2),Year=Z) %>%
+         dplyr::select(Year, `Visit 1`,`Visit 2`) }) %>% 
+    lapply(X=., data.frame, stringsAsFactors=FALSE) %>% do.call(rbind,.) %>% 
+    gather(key=Visit, value=Mean, Visit.1, Visit.2)
+#   
+  
+#   
+  PlotData %>% 
+    ggvis() %>% 
+    layer_points(x=~Year, y=~Mean, fill=~Visit , size:=200, opacity:=.75) %>% 
+    add_tooltip(function(x)paste("Year=",x$Year,"<br/>", " Mean Detected=",x$Mean), on="hover" ) %>% 
+    add_axis(type="x",title="Year", format="####") %>%
+    add_axis(type="y",title="Mean Detected" ) %>% 
+    add_legend(scales="fill", title="Visit") %>% 
+# # #   
+# # #     X<-mtcars %>% ggvis(~wt, ~mpg, fill=~factor(cyl),size:=200) %>% 
+# # #     layer_points() %>% 
+# # #     add_legend(scales="fill",title="Legend Title") %>% 
+# # #     add_tooltip(function(x) paste("wt=",x$wt," mpg=", x$mpg), on="hover")
+# #   
+     bind_shiny(plot_id="PlotOut")
 
   
 }) #End Shiny Server function

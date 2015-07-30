@@ -80,6 +80,8 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     
     
   ),
+
+###############################  Tables Tab
   tabPanel("Data Tables",
     column(3,
       wellPanel(
@@ -108,10 +110,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
                    choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")),
       hr(),
       radioButtons(inputId="TableNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)
-    
-           
-         
-    )
+      )
     ),
     
     column(9, 
@@ -122,11 +121,26 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       hr(style="border: solid 1px black"),
       h2(textOutput("TableTitle")),
       DT::dataTableOutput("DataTable")
-
-
     )
-    
-    
-  )
+  ),  # end Tables Tab
+  
+###   Plots Tab
+  tabPanel("Plots",
+    column(3,
+      wellPanel(
+        h4(strong("Select Data:")),
+                  
+        br(),
+        uiOutput("ParkPlotSelect"),
+        selectizeInput(inputId="PlotSpecies",choices=NULL,label="Species") #updated in server.r
+      )
+    ),
+    column(9,
+      ggvisOutput("PlotOut")
            
-)
+           
+    )
+  )  #end Plots Tab
+
+           
+)## end UI
