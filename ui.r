@@ -1,5 +1,6 @@
 library(shiny)
 library(leaflet)
+library(ggvis)
 library(shinyjs)
 
 navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncrn/'> <img src='ah_small_black.gif',
@@ -29,6 +30,9 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
                                       "Number of Species"="richness", "Bird Community Index (BCI)"="bci"),inline=F
       ),
       
+      radioButtons(inputId="MapBand", label="Distance from Observer:",
+                   choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")),
+      
       div(id="SpeciesControls", 
        selectizeInput(inputId="MapSpecies",choices=NULL,label="Species"), #updated in server.r
        selectizeInput(inputId="SpeciesValues", label="Data", choices=c("Maximum Observed", "Visit 1", "Visit 2"))
@@ -54,7 +58,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
          hr(),
         tags$div(title="Increases size of plots for easier viewing",
             radioButtons(inputId="PointSize", label=h4("Point size:"), 
-                  choices=c("1X (to scale)"=1, "5X"=sqrt(5)), selected="1", inline=TRUE)
+                  choices=c("50m radius"=50, "100 m radius"=100), selected="50", inline=TRUE)
         )
       
     ),
@@ -90,7 +94,8 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
         br(),
        
         radioButtons(inputId="TableValues", label="Type of Data", 
-          choices=c("Individual Species"="individual", "Number of Species"="richness", "Bird Community Index (BCI)"="bci"),
+          choices=c("Individual Species - All data from 1 year"="individual","Individual Species - All detections"="detects", 
+                    "Number of Species"="richness", "Bird Community Index (BCI)"="bci"),
           inline=F),
        
         uiOutput("ParkTableSelect")
@@ -115,17 +120,17 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     
     column(9, 
       h2(textOutput("ParkTableTitle")),
-      DT::dataTableOutput("DataTable2"),
+      DT::dataTableOutput("ParkTable"),
       br(),
       br(),
       hr(style="border: solid 1px black"),
       h2(textOutput("TableTitle")),
-      DT::dataTableOutput("DataTable")
+      DT::dataTableOutput("PointTable")
     )
   ),  # end Tables Tab
   
 ###   Plots Tab
-  tabPanel("Plots",
+  tabPanel("Graphs",
     column(3,
       wellPanel(
         h4(strong("Select Data:")),
