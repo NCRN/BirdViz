@@ -23,6 +23,8 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 shinyServer(function(input,output,session){
  
   output$Test<-renderPrint(NULL)
+  
+
   ##### Set up Map #############
   
   output$BirdMap<-renderLeaflet({leaflet() %>%
@@ -258,7 +260,9 @@ shinyServer(function(input,output,session){
   #########################################  Data Table Funcitons  ########################################################
   
   
-  #   #### Park control for tables
+  ##### Render Controls for Tables and figure out user inputs
+  
+  # Make Park Control and decide which park is requested
   output$ParkTableSelect<-renderUI({
     selectizeInput(inputId="ParkTable",label="Park", choices=c("All Parks"="All", ParkList ), selected="All" ) 
   })
@@ -266,46 +270,29 @@ shinyServer(function(input,output,session){
   
   TableParkUse<-reactive({ if (input$ParkTable=="All") NCRN else NCRN[input$ParkTable] })  
   
+  ## Make bird species control and figure out name for Captions and Titles
   BirdTableNames<-reactive({
     validate(
       need(input$ParkTable, "Working...")
     )
-    BN2<-getChecklist(object =TableParkUse() ) #, years=input$TableYear, band=1)
-    TempNames2<-getBirdNames(object=NCRN[[1]], names=BN2, in.style="AOU", out.style=input$TableNames)
+    BN2<-getChecklist(object = TableParkUse() ) 
+    TempNames2<-getBirdNames(object=NCRN[[1]], names = BN2, in.style = "AOU", out.style = input$TableNames)
     TempNames2[is.na(TempNames2)]<-"Needs Name"
     names(BN2)<-TempNames2
     BN2 [order(TempNames2)]
   })
-  
-  
   
   observe({
     updateSelectizeInput(session,inputId="TableSpecies",label="Species", choices=BirdTableNames())
   })
 
   
-  ### Data for the Tables
-  
-  BaseData<-reactive({
-    switch(input$TableValues,
-           individual=CountXVisit(object=NCRN,
-                                  years=input$TableYear, 
-                                  band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)), 
-                                  AOU=input$TableSpecies),
-           detects=CountXVisit(object=NCRN,
-                              years=2007:2014, 
-                              band= NA, 
-                              AOU=input$TableSpecies),
-           richness=NA,
-           bci= withProgress(message="Calculating...  Please Wait",value=1,{
-             BCI(object=NCRN, years=input$TableYear)
-           })
-    )
-  })    
-  
   ## Bird name to use for titles and captions
   BirdName<-reactive(getBirdNames(object=NCRN[[1]], names =  input$TableSpecies, 
                                   in.style="AOU", out.style = input$TableNames))
+  
+  
+  ## Band to display in titles and captions
   
   BandOut<-reactive({
     switch(input$TableBand,
@@ -315,140 +302,303 @@ shinyServer(function(input,output,session){
   })
   
   
-  DataOut<-reactive({
-    validate(
-      need(input$ParkTable, "Working...")
-    )
-    switch(input$TableValues,
-      individual= BaseData() %>% 
-                  {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>% 
-                  rename("Visit 1"= Visit1, "Visit 2"=Visit2) %>% 
-                  mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name) ) %>% 
-                      dplyr::select(Park, `Point Name`, Year, `Visit 1`,`Visit 2`),
-      detects= BaseData() %>% 
-                {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>% 
-                filter(Visit1 >0 | Visit2 >0) %>% 
-                {if (nrow(.)==0 ) stop() else .} %>%
-                rename("Visit 1"= Visit1, "Visit 2"=Visit2) %>% 
-                mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name) ) %>% 
-                dplyr::select(Park, `Point Name`, Year, `Visit 1`,`Visit 2`),
+  ################## Data, Captons, Titles, for the Tables
+  
+  ### Individual tables, titles, captions, basedata used to calculate other tables
+  
+  IndividualBase<-reactive({
+    CountXVisit(object=NCRN,
+                years=input$TableYear, 
+                band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)), 
+                AOU=input$TableSpecies)
+  })
+  
+  IndividualPoint<-reactive({
+    IndividualBase() %>% 
+      {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>% 
+      rename("Visit 1"= Visit1, "Visit 2"=Visit2) %>% 
+      mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name) ) %>% 
+      dplyr::select(Park, `Point Name`, Year, `Visit 1`,`Visit 2`)
+  })
+  
+  IndividualPark<-reactive({
+    IndividualBase() %>% 
+    group_by(Admin_Unit_Code) %>% 
+    summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
+             "Mean Visit 2"= round( mean(Visit2, na.rm=T),digits=2)) %>%
+    dplyr::select(`Mean Visit 1`,`Mean Visit 2`) %>%
+    rbind(c(IndividualBase() %>% 
+    summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
+               "Mean Visit 2"= round(mean(Visit2, na.rm=T),digits=2) ) %>% 
+    dplyr::select(`Mean Visit 1`,`Mean Visit 2`) %>% unname()) ) %>% 
+    t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks"))
+  })
+ 
+  IndividualPointTitle<-reactive({paste(BirdName()," Data")})
+  
+  IndividualPointCaption<-reactive({  paste0('Number of ',BirdName(),'s detected at each monitoirng point during ',
+    input$TableYear,'. This table includes birds found at ',BandOut(),' from the observer. To see all instances where the bird was
+    detected, and not instances where the bird was absent, choose the "Individual Species - All detections" table instead.')
+  })
+  
+  IndividualParkTitle<-reactive({paste("Mean",BirdName()," Detected per Point")})
+  
+  IndividualParkCaption<-reactive({paste0("Mean number of ",BirdName(),"s detected per monitoring point in each park in ",
+                    input$TableYear,". This table includes birds found at ",BandOut()," from the observer.") })
+       
+  ####  Detects tables, titles, captions, basedata used to calculate other tables
+  
+  DetectsBase<-reactive({
+    CountXVisit(object=NCRN,
+                years=2007:2014, 
+                band= NA, 
+                AOU=input$TableSpecies)
+  })
+  
+  DetectsPoint<-reactive({
+    DetectsBase() %>% 
+    {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>% 
+      filter(Visit1 >0 | Visit2 >0) %>% 
+      {if (nrow(.)==0 ) stop() else .} %>%
+      rename("Visit 1"= Visit1, "Visit 2"=Visit2) %>% 
+      mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name) ) %>% 
+      dplyr::select(Park, `Point Name`, Year, `Visit 1`,`Visit 2`)
+  })
+  
+  DetectsPark<-reactive({
+    DetectsBase() %>%
+      group_by(Admin_Unit_Code) %>% 
+      summarize("Points where Found"=sum((!is.na(Visit1) &Visit1 > 0) |(!is.na(Visit2) &Visit2>0)),
+                "Total Points Monitored"=n()) %>% 
+      dplyr::select(.,`Points where Found`,`Total Points Monitored`) %>% 
+      rbind(c(DetectsBase() %>% 
+                summarize( "Points where Found"=sum((!is.na(Visit1) &Visit1 > 0) |(!is.na(Visit2) &Visit2>0)),
+                           "Total Points Monitored"=n()))) %>% 
+      t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks"))
+  })
+  
+  DetectsPointTitle<-reactive({paste(BirdName(),"Detections" )})
+  
+  DetectsPointCaption<-reactive({  paste0('Detections of ',BirdName(),'s across all distances and years. Each row indicates a monitoring point and year where ',BirdName(),'s were detected during at least one visit. If there were no detections of ', BirdName(),'s at a point during a given year, that point and year combination are not included in this table. For instances when a bird was not detected, choose the "Individual Species - All data from 1 year" table instead.')
+  })
+  
+  DetectsParkTitle<-reactive({paste("Number of Points with", getBirdNames(object=NCRN[[1]], names =  input$TableSpecies, 
+                                                      in.style="AOU", out.style = input$TableNames), "Summed Across All Years")})
+  
+  DetctsParkCaption<-reactive({paste0('"Points where Found" is the number of plots with ',BirdName(),'s detected duing at least one visit in a given year. Each year is treated seprately, so if a bird appears in a plot during 3 different years it will be counted three times. "Total Points Monitored" is the number of points monitored in park, added up over all years.' )})
+  
+  
+  
+  ####  Richness tables, titles, captions
 
-      richness= withProgress(message="Calculating...  Please Wait",value=1,{
-        getPoints(TableParkUse(),years=input$TableYear2[1]:input$TableYear2[2]) %>% 
-              group_by(Point_Name) %>% 
-              mutate(Species=birdRichness(TableParkUse(),points=Point_Name, years=input$TableYear2[1]:input$TableYear2[2])) %>% 
-              ungroup() %>%
-              mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name)) %>% 
-              rowwise() %>% 
-              mutate(Years=paste(range(getVisits(TableParkUse(),points=Point_Name,
-                          years=input$TableYear2[1]:input$TableYear2[2])$Year), collapse="-")) %>% 
-                  dplyr::select(Park,`Point Name`, Years,Species ) }),
-      
-      bci=BaseData() %>% 
+  RichnessPoint<-reactive({
+    withProgress(message="Calculating...  Please Wait",value=1,{
+      getPoints(TableParkUse(),years=input$TableYear2[1]:input$TableYear2[2]) %>% 
+        group_by(Point_Name) %>% 
+        mutate(Species=birdRichness(TableParkUse(),points=Point_Name, years=input$TableYear2[1]:input$TableYear2[2])) %>% 
+        ungroup() %>%
+        mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name)) %>% 
+        rowwise() %>% 
+        mutate(Years=paste(range(getVisits(TableParkUse(),points=Point_Name,
+                                           years=input$TableYear2[1]:input$TableYear2[2])$Year), collapse="-")) %>% 
+        dplyr::select(Park,`Point Name`, Years,Species ) })
+  })
+  
+  RichnessPark<-reactive({
+    data.frame(c(birdRichness(NCRN,years=input$TableYear2[1]:input$TableYear2[2], output="list"), 
+                birdRichness(NCRN,years=input$TableYear2[1]:input$TableYear2[2]))) %>%
+    rbind (c(sapply(getPoints(NCRN,years=input$TableYear2[1]:input$TableYear2[2],output="list"),nrow),
+             nrow(getPoints(NCRN,years=input$TableYear2[1]:input$TableYear2[2])))) %>% 
+    "names<-"(c(getParkNames(NCRN),"All Parks")) %>% 
+    "row.names<-"(c("Species","Monitoring Points"))
+  })
+  
+  RichnessPointTitle<-reactive({
+    paste0("Number of Species Detected per Monitoring Point ",input$TableYear2[1],"-",input$TableYear2[2])})
+  
+  RichnessPointCaption<-reactive({  paste0("The number of different species found at each monitoring point between ", 
+     input$TableYear2[1]," and ", input$TableYear2[2],". Note that monitoring began later at some points than at others.")
+  })
+  
+  RichnessParkTitle<-reactive({paste0("Number of Species Detected per Park ",input$TableYear2[1],"-",input$TableYear2[2])})
+  
+  RichnessParkCaption<-reactive({paste0("Number of species detectded in the parks between ",input$TableYear2[1]," and ",input$TableYear2[2],". Parks differ in the number of monitoring points and points differ in the number of years they have been visited, so differnces between parks may be oartially due to differences in sampling.") })
+  
+  ####  BCI tables, titles, captions, basedata used to calculate other tables
+  
+  BCIBase<-reactive({
+    withProgress(message="Calculating...  Please Wait",value=1,{
+     BCI(object=NCRN, years=input$TableYear)
+   })
+  })    
+
+  
+  BCIPoint<-reactive({
+    BCIBase() %>% 
       {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>%
-        dplyr::select(Point_Name,BCI,BCI_Category)
-      )
+        dplyr::select(Point_Name,BCI,BCI_Category) %>% 
+      rename("Point Name"=Point_Name)
   })
   
-  ParkDataOut<-reactive({
-    validate(
-      need(input$ParkTable, "Working...")
-    )
-    switch(input$TableValues,
-      individual= BaseData() %>% 
-        group_by(Admin_Unit_Code) %>% 
-        summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
-                  "Mean Visit 2"= round( mean(Visit2, na.rm=T),digits=2)) %>%
-        dplyr::select(`Mean Visit 1`,`Mean Visit 2`) %>%
-        rbind(c(BaseData() %>% 
-                summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
-                          "Mean Visit 2"= round(mean(Visit2, na.rm=T),digits=2) ) %>% 
-                dplyr::select(`Mean Visit 1`,`Mean Visit 2`) %>% unname()) ) %>% 
-        t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks")),
-      
-      detects=BaseData() %>%
-        group_by(Admin_Unit_Code) %>% 
-        summarize("Points where Found"=sum((!is.na(Visit1) &Visit1 > 0) |(!is.na(Visit2) &Visit2>0)),
-                  "Total Points Monitored"=n()) %>% 
-        dplyr::select(.,`Points where Found`,`Total Points Monitored`) %>% 
-        rbind(c(BaseData() %>% 
-          summarize( "Points where Found"=sum((!is.na(Visit1) &Visit1 > 0) |(!is.na(Visit2) &Visit2>0)),
-                     "Total Points Monitored"=n()))) %>% 
-        t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks")),
-      
-      richness= data.frame(c(birdRichness(NCRN,years=input$TableYear2[1]:input$TableYear2[2], output="list"), 
-                    birdRichness(NCRN,years=input$TableYear2[1]:input$TableYear2[2]))) %>% 
-                rbind (c(sapply(getPoints(NCRN,years=input$TableYear2[1]:input$TableYear2[2],output="list"),nrow),
-                         nrow(getPoints(NCRN,years=input$TableYear2[1]:input$TableYear2[2])))) %>% 
-                "names<-"(c(getParkNames(NCRN),"All Parks")) %>% 
-                  "row.names<-"(c("Species","Monitoring Points")),
-      
-      bci=BaseData() %>% 
-        group_by(Admin_Unit_Code) %>% 
-        summarize("Mean BCI" = round (mean(BCI), digits=1)) %>%    
-        dplyr::select(`Mean BCI`) %>%
-        rbind(round(mean(BaseData()$BCI),digits=1 )) %>% 
-          mutate("Park BCI Category"=
-          c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")[findInterval(`Mean BCI`,
-                                                                          vec=c(0,40.1,52.1,60.1,77.1))] ) %>% 
-        t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks") )
-    )
+  BCIPark<-reactive({
+    BCIBase() %>% 
+    group_by(Admin_Unit_Code) %>% 
+    summarize("Mean BCI" = round (mean(BCI), digits=1)) %>%    
+    dplyr::select(`Mean BCI`) %>%
+    rbind(round(mean(BCIBase()$BCI),digits=1 )) %>% 
+    mutate("Park BCI Category"=
+      c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")[findInterval(`Mean BCI`,
+                                vec=c(0,40.1,52.1,60.1,77.1))] ) %>% 
+    t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks") )
   })
   
+  BCIPointTitle<-reactive(paste0("Bird Community Index by Point: ",input$TableYear))
+  
+  BCIPointCaption<-"The Bird Comminity Index (BCI) is an index of ecological integrity (REF). Each point is assinged a BCI score based on the species of birds found. Scores are then assigned to one of four BCI categories: Low, Medium. High or Highest Integiry. These scores are averaged to give a park-wide score. Note that the BCI of individual points may fluctuate from year to year due to random sampling as well as due to changes in the environment."
+  
+  BCIParkTitle<-reactive({paste0("Bird Community Index by Park: ",input$TableYear) })
+  
+  BCIParkCaption<-"The Bird Comminity Index (BCI) is an index of ecological integrity (REF). Each park s assinged a BCI score by averaging point scores, which in turn are based on the species of birds found. Scores are then assigned to one of four BCI categories: Low, Medium. High or Highest Integrity."
+  
+############# Create Tables and Title ouputs
   
 ### Point Table title:
   
   output$TableTitle<-renderText({
+    validate(
+      need(IndividualPointTitle(),"Working...")
+    )
     switch(input$TableValues,
-           individual=paste(BirdName()," Data"),
-           detects=paste(BirdName(),"Detections" ),
-           richness=paste0("Number of Species Detected per Monitoring Point ",input$TableYear2[1],"-",input$TableYear2[2]),
-           bci=paste0("Bird Community Index by Point: ",input$TableYear)
+           individual=IndividualPointTitle(),
+           detects=DetectsPointTitle(),
+           richness=RichnessPointTitle(),
+           bci=BCIPointTitle()
     )
   })
   
   ###Point Table Caption  
   PointTableCaption<-reactive({
-    switch(input$TableValues,
-           individual=paste0('Number of ',BirdName(),'s detected at each monitoirng point during ',input$TableYear,'. This table
-                             includes birds found at ',BandOut(),' from the observer. To see all instances where the bird was detected, and not instances where the bird was absent, choose the "Individual Species - All detections" table instead.'),
-           
-            detects=paste0('Detections of ',BirdName(),'s across all distances and years. Each row indicates a monitoring point and year where ',BirdName(),'s were detected during at least one visit. If there were no detections of ', BirdName(),'s at a point during a given year, that point and year combination are not included in this table. For instances when a bird was not detected, choose the "Individual Species - All data from 1 year" table instead.'),
-           richness=paste0("The number of different species found at each monitoring point between ", input$TableYear2[1]," and ", input$TableYear2[2],". Note that monitoring began later at some points than at others."),
-           bci="The Bird Comminity Index (BCI) is an index of ecological integrity (REF). Each point is assinged a BCI score based on the species of birds found. Scores are then assigned to one of four BCI categories: Low, Medium. High or Highest Integiry. These scores are averaged to give a park-wide score. Note that the BCI of individual points may fluctuate from year to year due to random sampling as well as due to changes in the environment."
+    validate(
+      need(input$TableYear,"Working..")
     )
+    switch(input$TableValues,
+            individual=IndividualPointCaption(),
+             detects=DetectsPointCaption(),
+            richness= RichnessPointCaption(),
+            bci=BCIPointCaption #just text, so not reactive.
+     )
   })
 
   ### Park Table title:
   
   output$ParkTableTitle<-renderText({
+    validate(
+      need(BirdName(),"Working..")
+    )
     switch(input$TableValues,
-           individual=paste("Mean",BirdName()," Detected per Point"),
-           detects=paste("Number of Points with", getBirdNames(object=NCRN[[1]], names =  input$TableSpecies, 
-                            in.style="AOU", out.style = input$TableNames), "Summed Across All Years"),
-           richness=paste0("Number of Species Detected per Park ",input$TableYear2[1],"-",input$TableYear2[2]),
-           bci=paste0("Bird Community Index by Park: ",input$TableYear)
+           individual=IndividualParkTitle(),
+           detects=DetectsParkTitle(),
+           richness=RichnessParkTitle(),
+           bci=BCIParkTitle()
     )
   })
   
   ###Park Table Caption  
   ParkTableCaption<-reactive({
-    switch(input$TableValues,
-           individual=paste0("Mean number of ",BirdName(),"s detected per monitoring point in each park in ",
-input$TableYear,". This table includes birds found at ",BandOut()," from the observer."),
-           detects=paste0('"Point where Found" is the number of plots with ',BirdName(),'s detected duing at least one visit in a given year. Each year is treated seprately, so if a bird appears in a plot during 3 different years it will be counted three times. "Total Points Monitored" is the number of points monitored in park, added up over all years.' ),
-           richness=paste0("Number of species detectded in the park between ",input$TableYear2[1]," and ",input$TableYear2[2],". Parks differ in the number of monitoring points and points differ in the number of years they have been visited, so differnces between parks may be due to differences in sampling."),
-           bci="The Bird Comminity Index (BCI) is an index of ecological integrity (REF). Each park s assinged a BCI score by averaging point scores, which in turn are based on the species of birds found. Scores are then assigned to one of four BCI categories: Low, Medium. High or Highest Integiry."
+    validate(
+      need(BirdName(),"Working...")
+    )
+     switch(input$TableValues,
+            individual=IndividualParkCaption(),
+            detects=DetctsParkCaption(),
+            richness=RichnessParkCaption(),
+            bci=BCIParkCaption #just texzt so not reactive
     )
   })
-    ### The tables
+    
+
+  PointTableData<-reactive({
+    validate(
+      need(BirdName(),".")
+    )
+    switch(input$TableValues,
+               individual=IndividualPoint(),
+               detects=DetectsPoint(),
+               richness=RichnessPoint(),
+               bci=BCIPoint())
+  })
+  
+  ParkTableData<-reactive({
+    validate(
+      need(IndividualPark(), "Working...")
+    )
+    switch(input$TableValues,
+    individual=IndividualPark(),
+    detects=DetectsPark(),
+    richness=RichnessPark(),
+    bci=BCIPark())
+  })
+  
+  
+  output$PointTable<-DT::renderDataTable (datatable(data=PointTableData(),rownames=F,caption=PointTableCaption(), 
+                  class="display compact",selection="single"),server=F)
+    
+    
+    
+  output$ParkTable<-DT::renderDataTable({
+    datatable(data=ParkTableData(), caption=ParkTableCaption(), class="display compact",
+                  options=list(dom="t", ordering=FALSE), selection="none")
+  })
 
   
-  output$PointTable<-DT::renderDataTable(datatable(data=DataOut(),rownames=F,caption=PointTableCaption(), 
-                  class="display compact"))
+  ## Point Select in the table
+
   
-  output$ParkTable<-DT::renderDataTable(datatable(data=ParkDataOut(), caption=ParkTableCaption(), class="display compact",
-                  options=list(dom="t", ordering=FALSE)))
+  ### refocus the map on click and make popup
+  observeEvent(
+    input$PointTable_rows_selected,{
+     
+      PointSelected<-getPoints(NCRN) %>% 
+      group_by(Point_Name) %>% 
+      filter(Point_Name==as.character(PointTableData()[[input$PointTable_rows_selected,"Point Name"]]))
+     
+    ### Map Selection updates
+      updateRadioButtons(session, inputId="MapValues",
+                         selected=ifelse(input$TableValues=="detects","individual",input$TableValues)) 
+      updateSelectInput(session,inputId="MapSpecies", 
+                        selected=ifelse(input$TableValues %in% c("individual","detects"), input$TableSpecies, input$MapSpecies))
+      updateRadioButtons(session, inputId="MapBand",selected=ifelse(input$TableValues=="individual",input$TableBand,"All"))
+      updateSliderInput(session ,inputId="MapYear", 
+                        value=ifelse(input$TableValues=="richness",input$TableYear2[2],input$TableYear))
+      updateRadioButtons(session,inputId="MapNames", selected=input$TableNames)
+      
+      ### move to map
+      leafletProxy("BirdMap") %>% setView(lng=PointSelected$Longitude,lat=PointSelected$Latitude,zoom=14)
+      updateNavbarPage(session,inputId="MainNavBar", selected = "Map")
+      
+      
+      ### Make popup
+      leafletProxy("BirdMap") %>% clearPopups() %>% 
+        addPopups(
+          map=.,lat=PointSelected$Latitude, lng=PointSelected$Longitude, 
+          popup=switch(input$TableValues, 
+            individual=,detects=paste(collapse="<br/>", 
+              paste(PointSelected$Point_Name,"<br/>"),
+              paste(circleData()[circleData()$Point_Name==PointSelected$Point_Name,]$Values,"detected", collapse=" ")),
+            richness= paste(collapse="<br/>",
+                paste(PointSelected$Point_Name,':',circleData()[circleData()$Point_Name==PointSelected$Point_Name,]$Values, 
+                                    "Species","<br/>","<br/>",collapse=" "),
+                paste(getChecklist(NCRN,points=PointSelected$Point_Name, years=input$MapYear, 
+                                   out.style=input$MapNames),collapse="<br/>") ),
+            bci=paste(sep="<br/>", PointSelected$Point_Name, paste0('BCI Value: ',
+              circleData()[circleData()$Point_Name==PointSelected$Point_Name,]$BCI),
+              paste('BCI Category: ', circleData()[circleData()$Point_Name==PointSelected$Point_Name,]$Values) )
+          )
+        
+      )
+    
+  })
+
 
   
   #############################  Plots Tab

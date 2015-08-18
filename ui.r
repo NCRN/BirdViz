@@ -6,7 +6,7 @@ library(shinyjs)
 navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncrn/'> <img src='ah_small_black.gif',
                       alt='Forest Bird Visualizer'> </a> Forest Bird Visualizer</div>"),
            position = "static-top",inverse=TRUE, collapsible = FALSE, fluid=TRUE, windowTitle = "NCRN Birds",
-           theme="http://www.nps.gov/lib/bootstrap/3.3.2/css/nps-bootstrap.min.css",
+           theme="http://www.nps.gov/lib/bootstrap/3.3.2/css/nps-bootstrap.min.css", id="MainNavBar",
           
   tabPanel(title="Map", 
     useShinyjs(),
@@ -58,7 +58,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
          hr(),
         tags$div(title="Increases size of plots for easier viewing",
             radioButtons(inputId="PointSize", label=h4("Point size:"), 
-                  choices=c("50m radius"=50, "100 m radius"=100), selected="50", inline=TRUE)
+                  choices=c("50m radius"=50, "100m radius"=100), selected="50", inline=TRUE)
         )
       
     ),
