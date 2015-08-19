@@ -40,7 +40,11 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       
       sliderInput(inputId="MapYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T),
       hr(),
-      radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)
+      radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE),
+      hr(),
+      h4("eBird Data",class="panel-heading"),
+      checkboxInput(inputId="MapEBird", label="Show eBird Data?"),
+      sliderInput(inputId="MapEBirdDays", label= "How many days back for obersrvations",min=1,max=30,sep="",value=14 )
     ),
    
     
@@ -49,7 +53,8 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     ###### Zoom Box 
     fixedPanel(class="panel panel-default controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="auto",
                   left=50,width=250,id="ZoomPanel",
-      h4("Zoom to:"),
+      h4("Display",class="panel-heading"),
+      h5("Zoom to:"),
     fluidRow(
      column(9,tags$div(title="Choose a park and click 'Go'", uiOutput("ParkZoomControl"))),
       column(3,actionButton(class="btn btn-primary btn-sm", inputId="Zoom", label="Go")) 
@@ -57,7 +62,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       
          hr(),
         tags$div(title="Increases size of plots for easier viewing",
-            radioButtons(inputId="PointSize", label=h4("Point size:"), 
+            radioButtons(inputId="PointSize", label="Point size:", 
                   choices=c("50m radius"=50, "100m radius"=100), selected="50", inline=TRUE)
         )
       
@@ -109,7 +114,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       selectizeInput(inputId="TableSpecies",choices=NULL,label="Species"), #updated in server.r
       
       sliderInput(inputId="TableYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T),
-      sliderInput(inputId="TableYear2", label="Year:", min=2007,max=2014,value=c(2007,2014), sep="",step=1, ticks=T),
+     # sliderInput(inputId="TableYear2", label="Year:", min=2007,max=2014,value=c(2007,2014), sep="",step=1, ticks=T),
       
       radioButtons(inputId="TableBand", label="Distance from Observer:",
                    choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")),
