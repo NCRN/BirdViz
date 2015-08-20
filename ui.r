@@ -42,9 +42,9 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       hr(),
       radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE),
       hr(),
-      h4("eBird Data",class="panel-heading"),
-      checkboxInput(inputId="MapEBird", label="Show eBird Data?"),
-      sliderInput(inputId="MapEBirdDays", label= "How many days back for obersrvations",min=1,max=30,sep="",value=14 )
+      h4("eBird Data",class="panel-heading", id="EBirdTitle"),
+      checkboxInput(inputId="MapEBird", label="Show recent eBird Data?"),
+      sliderInput(inputId="MapEBirdDays", label= "Display data from how many days prior to today?",min=1,max=30,sep="",value=14 )
     ),
    
     

@@ -22,7 +22,7 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
 shinyServer(function(input,output,session){
  
-  output$Test<-renderPrint(NULL)
+  output$Test<-renderPrint(input$BirdMap_shape_click)
 
   ##### Set up Map #############
   
@@ -39,6 +39,9 @@ shinyServer(function(input,output,session){
     toggle(id="MapControlPanel", condition=("MapControls" %in% input$MapHide))
     toggle(id="ZoomPanel", condition=("Zoom" %in% input$MapHide))
     toggle(id="ExtraLayerPanel", condition=("ExtraLayers" %in% input$MapHide))
+    toggle(id="EBirdTitle", condition=(input$MapValues=="individual"))
+    toggle(id="MapEBird", condition = (input$MapValues=="individual"))
+    toggle(id="MapEBirdDays", condition =(input$MapEBird & input$MapValues=="individual")) 
     
     ### Tables
     toggle(id="TableSpecies", condition=input$TableValues %in% c("individual","detects"))
@@ -163,8 +166,8 @@ shinyServer(function(input,output,session){
   ### Color funciton for circles
   MapColors<-reactive({
     switch(input$MapValues,
-           richness= colorNumeric(palette=c("cyan","magenta4","orangered3"),domain=circleData()$Values),
-          individual=, bci=  colorFactor(palette=c("cyan","magenta4","orangered3"), domain=circleData()$Values)
+      richness= colorNumeric(palette=c("cyan","magenta4","orangered3"),domain=circleData()$Values),
+      individual=, bci=  colorFactor(palette=c("cyan","magenta4","orangered3","yellow"), domain=0:8)
     )
   })  
 
@@ -175,7 +178,17 @@ shinyServer(function(input,output,session){
     leafletProxy("BirdMap") %>%  
     clearGroup("Circles") %>% 
     addCircles(data=circleData(), layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
-          fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=as.numeric(input$PointSize), fillOpacity = 0.8) 
+          fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=as.numeric(input$PointSize), fillOpacity = 1) 
+  })
+  
+  ### Figure out values for Map legend
+  LegendValues<-reactive({
+    
+    if(!input$MapEBird) unique(circleData()$Values) else{
+           TempValues<-unique(c(circleData()$Values,EBirdData()$howMany))  
+           TempValues[TempValues>8]<-"9+"
+           return(TempValues)
+    }
   })
   
   ### Add Legend
@@ -183,7 +196,8 @@ shinyServer(function(input,output,session){
     leafletProxy("BirdMap") %>% 
      removeControl(layerId="CircleLegend") %>% 
      {if("Legends" %in% input$MapHide) 
-        addLegend(map=., layerId="CircleLegend",pal=MapColors(), values= circleData()$Values, 
+        addLegend(map=., layerId="CircleLegend",pal=MapColors(), 
+              values=LegendValues(),
              na.label="Not Visited", title=circleLegend() )} #, className="panel panel-default info legend"
   })
   
@@ -220,7 +234,9 @@ shinyServer(function(input,output,session){
             )
         ),
         Ecoregions=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
-        Forested=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id)
+        Forested=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
+        EBird=addPopups(map=., lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$howMany)
+        
       )}
   })
   
@@ -260,30 +276,34 @@ shinyServer(function(input,output,session){
       )}
   })
   
-  
-  
-  
   ### Get ebird data
   EBirdName<-reactive({getBirdNames(object=NCRN[[1]], names=input$MapSpecies, in.style="AOU", out.style="Latin")})
-  EBirdData<-reactive({ if(input$MapSpecies!=""){
-    fromJSON(url(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-MD&sci=",EBirdName(),"&back=",input$MapEBirdDays,"&fmt=json"))) }
-})
-#     rbind( 
-#     fromJSON(url(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-MD&sci=",EBirdName(),"&fmt=json"))), fromJSON(url("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-VA&sci=larus%20delawarensis&fmt=json")), fromJSON(url("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-DC&sci=larus%20delawarensis&fmt=json")), fromJSON(url("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-WV&sci=larus%20delawarensis&fmt=json")) 
-#  )
-#   
-# })
-   observe({
-     if(input$MapSpecies!="" & input$MapEBird){
+
+  EBirdGet<-function(Species,State,Days){           ### Get data from EBird
+    fromJSON(url(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-",State,"&sci=",
+                        Species,"&back=",Days,"&fmt=json")))
+  }
+  
+  EBirdData<-reactive({ if(input$MapSpecies!="" & input$MapEBird ){
+    withProgress(message="DownLoading ...  Please Wait",value=1,{
+     rbind(EBirdGet(EBirdName(),"DC",input$MapEBirdDays),EBirdGet(EBirdName(),"MD",input$MapEBirdDays),
+           EBirdGet(EBirdName(),"VA",input$MapEBirdDays),EBirdGet(EBirdName(),"WV",input$MapEBirdDays)
+      ) %>% filter(!is.na(howMany))
+    })
+  }})
+
+  ### add EBird cicles
+  observe({
+   if(input$MapSpecies!="" & input$MapEBird & class(EBirdData())=="data.frame" & input$MapValues=="individual"){
      leafletProxy("BirdMap") %>%  
        clearGroup("EBird") %>% 
        addCircles(data=EBirdData(), layerId=NULL, group="EBird",color=MapColors()(EBirdData()$howMany),fill = FALSE,
                   opacity=0.8, radius=as.numeric(input$PointSize))             
-     }
-   })
+   } else {leafletProxy("BirdMap") %>% clearGroup("EBird")}
+  })
   
   #########################################  Data Table Funcitons  ########################################################
-  
+
   
   ##### Render Controls for Tables and figure out user inputs
   
