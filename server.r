@@ -22,12 +22,13 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
 shinyServer(function(input,output,session){
  
-  output$Test<-renderPrint(input$BirdMap_shape_click)
+  output$Test<-renderPrint(NULL)
 
   ##### Set up Map #############
   
   output$BirdMap<-renderLeaflet({leaflet() %>%
-     setView(lng=-77.8,lat=39.03,zoom=9)
+    setView(lng=-77.8,lat=39.03,zoom=9) %>% 
+    setMaxBounds(lng1=-79.5,lng2=-76.1, lat1=37.7, lat2=40.36)
   })
 
   
@@ -87,9 +88,9 @@ shinyServer(function(input,output,session){
       
     clearTiles() %>% 
       
-    addTiles(group="Map", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.2yxv8n84,nps.jhd2e8lb/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q") %>% 
-    addTiles(group="Imagery", urlTemplate="//{s}.tiles.mapbox.com/v4/mapbox.satellite,nps.gdipreks,nps.08c8af87/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q") %>% 
-    addTiles(group="Slate", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.68926899,nps.502a840b/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q" ) %>% 
+    addTiles(group="Map", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.2yxv8n84,nps.jhd2e8lb/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q", options=tileOptions(minZoom=8)) %>% 
+    addTiles(group="Imagery", urlTemplate="//{s}.tiles.mapbox.com/v4/mapbox.satellite,nps.gdipreks,nps.08c8af87/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",options=tileOptions(minZoom=8)) %>% 
+    addTiles(group="Slate", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.68926899,nps.502a840b/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",options=tileOptions(minZoom=8) ) %>% 
     {if("BaseLayers" %in% input$MapHide) 
       
     addLayersControl(map=., baseGroups=c("Map","Imagery","Slate"),
@@ -158,8 +159,13 @@ shinyServer(function(input,output,session){
   circleLegend<-reactive({
     switch(input$MapValues,
            richness="# of Species",
-           individual=paste(getBirdNames(object=NCRN[[1]], names =  input$MapSpecies, in.style="AOU", 
-                                         out.style = input$MapNames), "<br>", " Observed"),
+           individual={
+              Part1<-paste0(getBirdNames(object=NCRN[[1]], names =  input$MapSpecies, in.style="AOU", 
+                                         out.style = input$MapNames), "s<br>Detected")
+              Part2<-paste0("<br><svg height='15' width='20'> <circle cx='10' cy='10' r='5', stroke='black' fill='black'/>
+                            </svg> NPS Data<br> <svg height='15' width='20'> <circle cx='10' cy='10' r='5' stroke='black' 
+                            fill='transparent'/></svg> eBird Data")
+              if(input$MapEBird) paste0(Part1, Part2) else Part1},
            bci="Bird Community Index")
   })
   
@@ -209,10 +215,38 @@ shinyServer(function(input,output,session){
  })
   
   
+ 
+ ## Popup for user hoverin on a circle
+ observeEvent(input$BirdMap_shape_mouseover, {  
+   
+   ShapeOver<-input$BirdMap_shape_mouseover
+   
+   
+   leafletProxy("BirdMap") %>% 
+     clearPopups() %>% {
+       switch(ShapeOver$group,
+        Circles= addPopups(map=.,lat=ShapeOver$lat+.001, lng=ShapeOver$lng, 
+           popup=switch(input$MapValues,
+              richness=paste0(ShapeOver$id, ': ',circleData()[circleData()$Point_Name==ShapeOver$id,]$Values, " Species"),
+                                              
+              individual=paste(collapse="<br/>", paste(ShapeOver$id,"<br/>"),
+                      paste(circleData()[circleData()$Point_Name==ShapeOver$id,]$Values,"detected", collapse=" ")),
+                                              
+            bci=paste(sep="<br/>", ShapeOver$id, paste0('BCI Value: ',circleData()[circleData()$Point_Name==ShapeOver$id,]$BCI),
+             paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeOver$id,]$Values) )
+            )
+        ),
+        EBird=addPopups(map=., lat=ShapeOver$lat+.001, lng=ShapeOver$lng, 
+                  popup=paste0(EBirdData()[ShapeOver$id,"locName"],"<br>", EBirdData()[ShapeOver$id,"howMany"],
+                    " detected<br>",EBirdData()[ShapeOver$id,"obsDt"]))
+       )}
+ })
+ 
   ## Popup for user clicking on a shape
   observeEvent(input$BirdMap_shape_click, {  
     
     ShapeClick<-input$BirdMap_shape_click
+     
     
     leafletProxy("BirdMap") %>% 
       clearPopups() %>% {
@@ -235,10 +269,17 @@ shinyServer(function(input,output,session){
         ),
         Ecoregions=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
         Forested=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
-        EBird=addPopups(map=., lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$howMany)
-        
+        EBird=addPopups(map=., lat=ShapeClick$lat, lng=ShapeClick$lng, 
+          popup=paste0(EBirdData()[ShapeClick$id,"locName"],"<br>", EBirdData()[ShapeClick$id,"howMany"],
+                       " detected<br>",EBirdData()[ShapeClick$id,"obsDt"]))
       )}
   })
+  
+  
+  
+  
+  
+  
   
   ### Add additional layers
   withProgress(message="Loading ...  Please Wait",value=1,{
@@ -280,26 +321,31 @@ shinyServer(function(input,output,session){
   EBirdName<-reactive({getBirdNames(object=NCRN[[1]], names=input$MapSpecies, in.style="AOU", out.style="Latin")})
 
   EBirdGet<-function(Species,State,Days){           ### Get data from EBird
-    fromJSON(url(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-",State,"&sci=",
-                        Species,"&back=",Days,"&fmt=json")))
+    tryCatch(                                       ### tryCatch is for when our name aren't in ebird (e.g. "unidentified bird")
+      fromJSON(url(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-",State,"&sci=",
+                        Species,"&back=",Days,"&fmt=json"))),
+      error=function(cond){return(list())}
+    )
   }
   
   EBirdData<-reactive({ if(input$MapSpecies!="" & input$MapEBird ){
     withProgress(message="DownLoading ...  Please Wait",value=1,{
-     rbind(EBirdGet(EBirdName(),"DC",input$MapEBirdDays),EBirdGet(EBirdName(),"MD",input$MapEBirdDays),
-           EBirdGet(EBirdName(),"VA",input$MapEBirdDays),EBirdGet(EBirdName(),"WV",input$MapEBirdDays)
-      ) %>% filter(!is.na(howMany))
+      rbind(EBirdGet(EBirdName(),"DC",input$MapEBirdDays),EBirdGet(EBirdName(),"MD",input$MapEBirdDays),
+            EBirdGet(EBirdName(),"VA",input$MapEBirdDays),EBirdGet(EBirdName(),"WV",input$MapEBirdDays)) %>% 
+       {if(class(.)=="matrix" ) . else filter(.,!is.na(howMany))}
     })
   }})
+  #lng1=-79.5,lng2=-76.1, lat1=37.7, lat2=40.36
 
   ### add EBird cicles
   observe({
-   if(input$MapSpecies!="" & input$MapEBird & class(EBirdData())=="data.frame" & input$MapValues=="individual"){
-     leafletProxy("BirdMap") %>%  
-       clearGroup("EBird") %>% 
-       addCircles(data=EBirdData(), layerId=NULL, group="EBird",color=MapColors()(EBirdData()$howMany),fill = FALSE,
-                  opacity=0.8, radius=as.numeric(input$PointSize))             
-   } else {leafletProxy("BirdMap") %>% clearGroup("EBird")}
+    if(input$MapSpecies!="" & input$MapEBird & class(EBirdData() )=="data.frame" & input$MapValues=="individual"){
+      leafletProxy("BirdMap") %>%  
+      clearGroup("EBird") %>% 
+      addCircles(data=EBirdData(), layerId=rownames(EBirdData()), group="EBird",
+                 color=MapColors()(EBirdData()$howMany),fillColor = 'white',
+                  opacity=1, fillOpacity=0, radius=as.numeric(input$PointSize))             
+    } else {leafletProxy("BirdMap") %>% clearGroup("EBird")}
   })
   
   #########################################  Data Table Funcitons  ########################################################
