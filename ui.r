@@ -130,7 +130,9 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       br(),
       hr(style="border: solid 1px black"),
       h2(textOutput("TableTitle")),
-      DT::dataTableOutput("PointTable")
+      DT::dataTableOutput("PointTable"),
+      br(),
+      h3("Click on any row to see that location on the map.")
     )
   ),  # end Tables Tab
   
