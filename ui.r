@@ -74,7 +74,8 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="80%", bottom="auto",
                height="auto", left="50px", width="auto",id="ExtraLayerPanel",
                strong("Extra Layers:"),
-               radioButtons(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), selected="None", inline=TRUE)
+               radioButtons(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), 
+                            selected="None", inline=TRUE)
     ),
     
     ####  Show/Hide Panel
@@ -94,32 +95,31 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
   tabPanel("Data Tables",
     column(3,
       wellPanel(
-      h4(strong("Select Data:")),
+        h4(strong("Select Data:")),
         
         br(),
        
         radioButtons(inputId="TableValues", label="Type of Data", 
           choices=c("Individual Species - All data from 1 year"="individual","Individual Species - All detections"="detects", 
-                    "Number of Species"="richness", "Bird Community Index (BCI)"="bci"),
-          inline=F),
+                    "Number of Species"="richness", "Bird Community Index (BCI)"="bci"), inline=F),
        
         uiOutput("ParkTableSelect")
       ),
       wellPanel(
       
-      h4(strong("Options:")),
+        h4(strong("Options:")),
       
-      br(),
+        br(),
+        
+        selectizeInput(inputId="TableSpecies",choices=NULL,label="Species"), #updated in server.r
       
-      selectizeInput(inputId="TableSpecies",choices=NULL,label="Species"), #updated in server.r
-      
-      sliderInput(inputId="TableYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T),
+        sliderInput(inputId="TableYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T),
      # sliderInput(inputId="TableYear2", label="Year:", min=2007,max=2014,value=c(2007,2014), sep="",step=1, ticks=T),
       
-      radioButtons(inputId="TableBand", label="Distance from Observer:",
+        radioButtons(inputId="TableBand", label="Distance from Observer:",
                    choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")),
-      hr(),
-      radioButtons(inputId="TableNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)
+        hr(),
+        radioButtons(inputId="TableNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)
       )
     ),
     
@@ -141,18 +141,43 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     column(3,
       wellPanel(
         h4(strong("Select Data:")),
-                  
         br(),
-        uiOutput("ParkPlotSelect"),
-        selectizeInput(inputId="PlotSpecies",choices=NULL,label="Species") #updated in server.r
+        radioButtons(inputId="PlotValues", label="Type of Data", 
+                     choices=c("Individual Species"="detects", 
+                               "Number of Species"="richness", "Bird Community Index (BCI)"="bci"), inline=F),
+        uiOutput("ParkPlotSelect")
+        ),
+      wellPanel(
+        h4(strong("Options")),
+        br(),
+        selectizeInput(inputId="PlotSpecies",choices=NULL,label="Species"), #updated in server.r
+        radioButtons(inputId="PlotBand", label="Distance from Observer:",
+                     choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")
+        ),
+        radioButtons(inputId="PlotNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)
       )
     ),
     column(9,
-      ggvisOutput("PlotOut")
-           
-           
+      tabsetPanel(id="GrapOutputs", type="pills", 
+        tabPanel(title="Individual Species",
+           ggvisOutput("DetectsPlot")
+        ),
+        tabPanel(title="Number of Species",
+          h3("test")
+        ),
+        tabPanel(title="Bird Community Index",
+          h2("test")
+        )
+      )
     )
-  )  #end Plots Tab
+    
+  ), # end plots tab
+  tabPanel("Species Lists",
+      h3("Add this")
+  ),
+  tabPanel("About",
+              h3("Add this")
+  )
 
            
 )## end UI
