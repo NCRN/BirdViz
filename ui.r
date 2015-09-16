@@ -142,14 +142,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       wellPanel(
         h4(strong("Select Data:")),
         br(),
-        radioButtons(inputId="PlotValues", label="Type of Data", 
-                     choices=c("Individual Species"="detects", 
-                               "Number of Species"="richness", "Bird Community Index (BCI)"="bci"), inline=F),
-        uiOutput("ParkPlotSelect")
-        ),
-      wellPanel(
-        h4(strong("Options")),
-        br(),
+        uiOutput("ParkPlotSelect"),
         selectizeInput(inputId="PlotSpecies",choices=NULL,label="Species"), #updated in server.r
         radioButtons(inputId="PlotBand", label="Distance from Observer:",
                      choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")
@@ -158,15 +151,15 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       )
     ),
     column(9,
-      tabsetPanel(id="GrapOutputs", type="pills", 
-        tabPanel(title="Individual Species",
+      tabsetPanel(id="GraphOutputs", type="pills", 
+        tabPanel(title="Individual Species", value="Detects",
            ggvisOutput("DetectsPlot")
         ),
-        tabPanel(title="Number of Species",
-          h3("test")
+        tabPanel(title="Number of Species", value="Richness",
+          ggvisOutput("RichnessPlot")
         ),
-        tabPanel(title="Bird Community Index",
-          h2("test")
+        tabPanel(title="Bird Community Index", value="BCI",
+          ggvisOutput("BCIPlot")
         )
       )
     )

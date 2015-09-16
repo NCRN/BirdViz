@@ -22,7 +22,7 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
 shinyServer(function(input,output,session){
  
-  output$Test<-renderPrint(NULL)
+  output$Test<-renderPrint(input$GraphOutputs)
 
   ##### Set up Map #############
   
@@ -50,6 +50,10 @@ shinyServer(function(input,output,session){
     toggle(id="TableNames", condition=input$TableValues%in% c("individual","detects"))
     toggle(id="TableYear", condition=input$TableValues %in% c("individual","richness","bci") )
   #  toggle(id="TableYear2", condition=input$TableValues == "richness")
+    
+    ###Graphs
+    toggle(id="PlotSpecies", condition=input$GraphOutputs=="Detects")
+    toggle(id="PlotNames", condition=input$GraphOutputs=="Detects")
   })
   
 
@@ -272,7 +276,7 @@ shinyServer(function(input,output,session){
                 paste(ShapeClick$id,"<br/>"),
                 paste(circleData()[circleData()$Point_Name==ShapeClick$id,]$Values,"detected", collapse=" ")),
                 
-            bci=paste(sep="<br/>", ShapeClick$id, paste0('BCI Value: ',circleData()[circleData()$Point_Name==ShapeClick$id,]$BCI),
+            bci=paste(sep="<br/>", ShapeClick$id, paste0('BCI Value: ',circleData()[circleData()$Point_Name==ShapeClick$id,]$ CI),
                       paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeClick$id,]$Values) )
             )
         ),
@@ -340,7 +344,7 @@ shinyServer(function(input,output,session){
  
 
   ### add EBird cicles
-  observe({
+  observe({ 
     if(input$MapSpecies!="" & input$MapEBird & class(EBirdData() )=="data.frame" & input$MapValues=="individual"){
       leafletProxy("BirdMap") %>%  
       clearGroup("EBird") %>% 
@@ -763,7 +767,7 @@ shinyServer(function(input,output,session){
         tbl_df(data.frame(Year=2007:2014)) %>% 
         group_by(Year) %>% 
         mutate(BCI=BCI(object=PlotParkUse(), years=Year,
-              band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)))[["BCI"]] %>% mean %>% round(digits=1),
+              band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)))[["BCI"]] %>% mean(na.rm=T) %>% round(digits=1),
                "BCI Category"=c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")[findInterval(BCI,
              vec=c(0,40.1,52.1,60.1,77.1))]
         ) %>% 
@@ -774,13 +778,15 @@ shinyServer(function(input,output,session){
   ## Bird name to use for titles and captions
   PlotBirdName<-reactive(getBirdNames(object=NCRN[[1]], names =  input$PlotSpecies, 
                                   in.style="AOU", out.style = input$PlotNames))
-  PlotParkName<-reactive(if (input$ParkPlot=="All") "All NCRN Parks" else getParkNames(PlotParkUse() ))
+  PlotParkName<-reactive(if (input$ParkPlot=="All") "All NCRN Parks" else getParkNames(PlotParkUse(),"short" ))
   
   
-  PlotDetectTitle<-reactive({paste0("Mean ",PlotBirdName(),"s Detected per Point in ",PlotParkName())})
+  PlotDetectTitle<-reactive({paste0("Mean ",PlotBirdName(),"s Detected per Point in ",PlotParkName() )})
+  
+  PlotRichnessTitle<-reactive({paste0("Number of Species Detected in ", PlotParkName())})
   
 observe({
-  if(!is.null(input$ParkPlot)){
+  if(!is.null(input$ParkPlot) & input$GraphOutputs=="Detects"){
     DetectsPlotData %>% 
         ggvis() %>% 
         layer_points(x=~Year, y=~Mean, fill= ~Visit , size:=200, opacity:=.66) %>% 
@@ -789,7 +795,7 @@ observe({
         scale_numeric("x", domain=c(2007,2014) )%>% 
         add_axis(type="y",title="Mean # Birds Detected per Point", title_offset=45, 
                  properties=axis_props(title=list(fontSize=14))) %>% 
-      #  scale_numeric("y",domain=c(0,max(1,DetectsPlotData()$Mean))) %>% 
+        {if(max(DetectsPlotData()$Mean)==0) scale_numeric(.,"y",domain=c(0,.5)) else .} %>% 
         add_legend(scales="fill", title="Visit", properties=legend_props(title=list(fontSize=16), labels=list(fontSize=16))) %>% 
         add_axis("x", orient="top",ticks=0, title=PlotDetectTitle(),  # Annoying hack for plot title
                  properties=axis_props(axis=list(stroke="white"), labels=list(fontSize=0),title=list(fontSize=32) )) %>% 
@@ -797,46 +803,46 @@ observe({
   }
 })
 
-RichnessPlot<-reactive({RichnessPlotData %>% 
-        ggvis() %>% 
-        layer_points(x=~Year, y=~Species, size:=200, fill="blue", opacity:=.75) %>% 
-        add_tooltip(function(x)paste("Year=",x$Year,"<br/>", "Species=",x$Species), on="hover" ) %>% 
-        add_axis(type="x",title="Year", format="####") %>%
-        scale_numeric("x", domain=c(2007,2014)) %>% 
-        add_axis(type="y",title="Species Detected") %>% 
-       # scale_numeric("y",domain=c(0,150) )%>% 
-        hide_legend(scales="fill" )
+observe({
+  if(!is.null(input$ParkPlot) & input$GraphOutputs=="Richness"){
+    RichnessPlotData %>% 
+      ggvis() %>% 
+      layer_points(x=~Year, y=~Species, size:=200, fill="blue", opacity:=.75) %>% 
+      add_tooltip(function(x)paste("Year=",x$Year,"<br/>", "Species=",x$Species), on="hover" ) %>% 
+      add_axis(type="x",title="Year", format="####") %>%
+      scale_numeric("x", domain=c(2007,2014)) %>% 
+      add_axis(type="y",title="Species Detected") %>% 
+      scale_numeric("y",domain=c(0,150) )%>% 
+      hide_legend(scales="fill" ) %>% 
+      add_axis("x", orient="top",ticks=0, title=PlotRichnessTitle(),  # Annoying hack for plot title
+               properties=axis_props(axis=list(stroke="white"), labels=list(fontSize=0),title=list(fontSize=32) )) %>% 
+      bind_shiny("RichnessPlot")
+    }
 })
     
-BCIPlot<-reactive({
-  BCIPlotData %>% 
-    ggvis(x=~Year) %>% 
-    layer_ribbons(y=0, y2 = 40, fill:="red", opacity:=.20) %>%
-    layer_ribbons(y=40, y2 = 52, fill:="orange", opacity:=.20) %>%
-    layer_ribbons(y=52, y2 = 60, fill:="yellow", opacity:=.20) %>%
-    layer_ribbons(y= 60, y2 = 80, fill:="green", opacity:=.20) %>%
-    layer_points(x=~Year,y=~BCI, fill=~`BCI Category`, size:=200, opacity:=.75,stroke="black") %>%
-    scale_nominal("fill", range=c("red","orange","yellow","green"),
+observe({
+  if(!is.null(input$ParkPlot) & input$GraphOutputs=="BCI"){  
+    BCIPlotData %>% 
+      ggvis(x=~Year) %>% 
+      layer_ribbons(y=0, y2 = 40, fill:="red", opacity:=.20) %>%
+      layer_ribbons(y=40, y2 = 52, fill:="orange", opacity:=.20) %>%
+      layer_ribbons(y=52, y2 = 60, fill:="yellow", opacity:=.20) %>%
+      layer_ribbons(y= 60, y2 = 80, fill:="green", opacity:=.20) %>%
+      layer_points(x=~Year,y=~BCI, fill=~`BCI Category`, size:=200, opacity:=.75,stroke="black") %>%
+      scale_nominal("fill", range=c("red","orange","yellow","green"),
                   domain=c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")) %>% 
-    add_tooltip(function(x)paste("Year=",x$Year,"<br/>", "BCI=",x$BCI, "<br/>", x[["BCI Category"]]), on="hover" ) %>% 
-    add_axis(type="x",title="Year", format="####") %>%
-    scale_numeric("x", domain=c(2007,2014),expand=0.008) %>% 
-    add_axis(type="y",title="Bird Community Index (BCI)") %>% 
-    scale_numeric("y",domain=c(0,80),expand=0) %>%
-    add_legend("fill") %>% 
-    hide_legend("stroke")
+      add_tooltip(function(x)paste("Year=",x$Year,"<br/>", "BCI=",x$BCI, "<br/>", x[["BCI Category"]]), on="hover" ) %>% 
+      add_axis(type="x",title="Year", format="####") %>%
+      scale_numeric("x", domain=c(2007,2014),expand=0.008) %>% 
+      add_axis(type="y",title="Bird Community Index (BCI)") %>% 
+      scale_numeric("y",domain=c(0,80),expand=0) %>%
+      add_legend("fill") %>% 
+      hide_legend("stroke") %>% 
+      bind_shiny("BCIPlot")
+  }
 })
   
 
-# observe({
-#   if(!is.null(input$ParkPlot)){
-#     bind_shiny(vis=switch(input$PlotValues,
-#       detects=DetectsPlot,
-#       richness=RichnessPlot,
-#       bci=BCIPlot),
-#       plot_id="PlotOut")
-#     } 
-#   })
-#   
+
   
 }) #End Shiny Server function
