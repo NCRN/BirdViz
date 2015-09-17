@@ -166,7 +166,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     
   ), # end plots tab
   tabPanel("Species Lists",
-      h3("Add this")
+           DT::dataTableOutput("SpeciesList")
   ),
   tabPanel("About",
               h3("Add this")

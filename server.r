@@ -785,6 +785,8 @@ shinyServer(function(input,output,session){
   
   PlotRichnessTitle<-reactive({paste0("Number of Species Detected in ", PlotParkName())})
   
+  PlotBCITitle<-reactive({paste0("Bird Community Index for ",PlotParkName())})
+  
 observe({
   if(!is.null(input$ParkPlot) & input$GraphOutputs=="Detects"){
     DetectsPlotData %>% 
@@ -838,11 +840,22 @@ observe({
       scale_numeric("y",domain=c(0,80),expand=0) %>%
       add_legend("fill") %>% 
       hide_legend("stroke") %>% 
+      add_axis("x", orient="top",ticks=0, title=PlotBCITitle(),  # Annoying hack for plot title
+               properties=axis_props(axis=list(stroke="white"), labels=list(fontSize=0),title=list(fontSize=32) )) %>% 
       bind_shiny("BCIPlot")
   }
 })
-  
+
+####################################
+### Species Lists ##################
+
+##IRMA
 
 
-  
+NPSpeciesURL<-paste0("http://irmaservices.nps.gov/v3/rest/npspecies/checklist/CATO/bird?format=Json")
+NPSpeciesList<-fromJSON(NPSpeciesURL)
+
+output$SpeciesList<-DT::renderDataTable(datatable(data=NPSpeciesList,rownames=F,caption="Species List", 
+                                                   class="display compact",selection="single"),server=F)
+
 }) #End Shiny Server function
