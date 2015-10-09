@@ -22,7 +22,7 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
 shinyServer(function(input,output,session){
  
-  output$Test<-renderPrint(input$GraphOutputs)
+  #output$Test<-renderPrint(input$GraphOutputs)
 
   ##### Set up Map #############
   
@@ -54,6 +54,9 @@ shinyServer(function(input,output,session){
     ###Graphs
     toggle(id="PlotSpecies", condition=input$GraphOutputs=="Detects")
     toggle(id="PlotNames", condition=input$GraphOutputs=="Detects")
+    
+    ### SpeciesList
+    toggle(id="PointListSelect", condition=input$SpeciesListType=="Points")
   })
   
 
@@ -767,7 +770,8 @@ shinyServer(function(input,output,session){
         tbl_df(data.frame(Year=2007:2014)) %>% 
         group_by(Year) %>% 
         mutate(BCI=BCI(object=PlotParkUse(), years=Year,
-              band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)))[["BCI"]] %>% mean(na.rm=T) %>% round(digits=1),
+              band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)))[["BCI"]] %>% mean(na.rm=T) %>% 
+                round(digits=1),
                "BCI Category"=c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")[findInterval(BCI,
              vec=c(0,40.1,52.1,60.1,77.1))]
         ) %>% 
@@ -849,13 +853,60 @@ observe({
 ####################################
 ### Species Lists ##################
 
-##IRMA
+
+#   #### Park control for species list
+output$ParkListSelect<-renderUI({
+  selectizeInput(inputId="ParkList",label="Park", choices=ParkList ) 
+})
+
+ListParkUse<-reactive({  if (input$ParkList=="All") NCRN else NCRN[[input$ParkList]] })
+
+output$PointListSelect <-renderUI({
+  validate(
+    need(input$ParkList, message="Please select a Park")
+  )
+  selectizeInput(inputId="ListPointsUse", choices=c("All Plots"="All", getPoints(ListParkUse())$Point_Name),
+                 label="Points (optional)", multiple=TRUE, selected="All"
+  )
+})
+
+ListPoints<-reactive({
+  validate(
+    need(input$ListPointsUse, "Please select monitoring points.")
+  )
+  if("All" %in% input$ListPointsUse){NA}else{input$ListPointsUse}
+})
 
 
-NPSpeciesURL<-paste0("http://irmaservices.nps.gov/v3/rest/npspecies/checklist/CATO/bird?format=Json")
-NPSpeciesList<-fromJSON(NPSpeciesURL)
+### Get spceis lists from IRMA / NPSpecies
 
-output$SpeciesList<-DT::renderDataTable(datatable(data=NPSpeciesList,rownames=F,caption="Species List", 
-                                                   class="display compact",selection="single"),server=F)
+NPSpeciesURL<-reactive({
+  validate(
+    need(input$ParkList,"Choose a Park")
+  )
+  paste0("http://irmaservices.nps.gov/v3/rest/npspecies/checklist/",input$ParkList,"/bird?format=Json")
+})
 
+NPSpeciesList<-reactive({
+  fromJSON(NPSpeciesURL())%>% 
+  dplyr::select(ScientificName,CommonNames,Occurrence) %>% 
+  rename('Latin Name'=ScientificName, 'Common Name'=CommonNames)
+})
+
+MonitoringList<-reactive({
+ tbl_df(data.frame( 'Latin.Name'= getChecklist(object=NCRN[[input$ParkList]], points=ListPoints(),out.style="Latin"))) %>% 
+    mutate('Common Name' = getBirdNames(object=NCRN[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "common")) %>% 
+    rename('Latin Name'= Latin.Name)
+})
+
+#ScientificName, CommonNames, Occurnace
+
+output$SpeciesList<-DT::renderDataTable(server=FALSE,
+  datatable(rownames=F,caption="Species List", class="display compact",selection="single",
+    data=switch(input$SpeciesListType,
+                All=NPSpeciesList(),
+                Points=MonitoringList()
+    )
+  )
+)
 }) #End Shiny Server function

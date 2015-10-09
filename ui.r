@@ -24,27 +24,35 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       
       h4("Map Controls",class="panel-heading"),
       
-      textOutput("Test"),
+      #textOutput("Test"),
 
-      radioButtons(inputId="MapValues", label="Data to Map", choices=c("Individual Species"="individual",
+      tags$div(title="Choose the type of data you wish to see",
+        radioButtons(inputId="MapValues", label="Data to Map", choices=c("Individual Species"="individual",
                                       "Number of Species"="richness", "Bird Community Index (BCI)"="bci"),inline=F
+      )),
+      
+      tags$div(title="Include birds at what distance from the observer?",
+        radioButtons(inputId="MapBand", label="Distance from Observer:",
+         choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))),
+      
+      div(id="SpeciesControls",
+      tags$div(title="Species to display on map",
+               selectizeInput(inputId="MapSpecies",choices=NULL,label="Species")), #updated in server.r
+      tags$div(title="Display bird observations from Vist 1, Visit 2, or the maixmum of the two ",
+               selectizeInput(inputId="SpeciesValues", label="Data", choices=c("Maximum Observed", "Visit 1", "Visit 2")))
       ),
       
-      radioButtons(inputId="MapBand", label="Distance from Observer:",
-                   choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")),
-      
-      div(id="SpeciesControls", 
-       selectizeInput(inputId="MapSpecies",choices=NULL,label="Species"), #updated in server.r
-       selectizeInput(inputId="SpeciesValues", label="Data", choices=c("Maximum Observed", "Visit 1", "Visit 2"))
-      ),
-      
-      sliderInput(inputId="MapYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T),
+      tags$div(title="Choose which year's data to display",
+               sliderInput(inputId="MapYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T)),
       hr(),
-      radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE),
+      tags$div(title="Use common name, Latin name, or American Ornithological Union code",
+        radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
       hr(),
       h4("eBird Data",class="panel-heading", id="EBirdTitle"),
-      checkboxInput(inputId="MapEBird", label="Show recent eBird Data?"),
-      sliderInput(inputId="MapEBirdDays", label= "Display data from how many days prior to today?",min=1,max=30,sep="",value=14 )
+      tags$div(title="Display citizen science from ebird (non-NPS data)",
+        checkboxInput(inputId="MapEBird", label="Show recent eBird Data?")),
+      tags$div(title="# of days worth of data to display",
+      sliderInput(inputId="MapEBirdDays", label= "Display data from how many days prior to today?",min=1,max=30,sep="",value=14 ))
     ),
    
     
@@ -55,17 +63,16 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
                   left=50,width=250,id="ZoomPanel",
       h4("Display",class="panel-heading"),
       h5("Zoom to:"),
-    fluidRow(
-     column(9,tags$div(title="Choose a park and click 'Go'", uiOutput("ParkZoomControl"))),
-      column(3,actionButton(class="btn btn-primary btn-sm", inputId="Zoom", label="Go")) 
-             ),
-      
-         hr(),
-        tags$div(title="Increases size of plots for easier viewing",
-            radioButtons(inputId="PointSize", label="Point size:", 
-                  choices=c("50m radius"=50, "100m radius"=100), selected="50", inline=TRUE)
-        )
-      
+      fluidRow(
+        column(9,tags$div(title="Choose a park and click 'Go'", uiOutput("ParkZoomControl"))),
+        column(3,tags$div(title="Choose a park and click 'Go'",
+            actionButton(class="btn btn-primary btn-sm", inputId="Zoom", label="Go"))) 
+        ),
+      hr(),
+      tags$div(title="Increases size of plots for easier viewing",
+        radioButtons(inputId="PointSize", label="Point size:", 
+          choices=c("50m radius"=50, "100m radius"=100), selected="50", inline=TRUE)
+      )
     ),
     
     
@@ -74,22 +81,23 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="80%", bottom="auto",
                height="auto", left="50px", width="auto",id="ExtraLayerPanel",
                strong("Extra Layers:"),
-               radioButtons(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), 
-                            selected="None", inline=TRUE)
+               tags$div(title="Add additional informtaion to the parks on the map.",
+                radioButtons(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), 
+                            selected="None", inline=TRUE))
     ),
     
     ####  Show/Hide Panel
     
     fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="90%", bottom="auto",
          height="auto", left="50px", width="auto",
-      checkboxGroupInput(inputId="MapHide", label=strong("Show:"),inline=TRUE,
-        choices=c("Zoom", "Map Controls"="MapControls", "Legends","Base Layers"="BaseLayers", "Extra Layers"="ExtraLayers"),
-        selected=c("MapControls","Legends","Zoom","BaseLayers","ExtraLayers")
+      tags$div(title="You can hide controls that you are not using.",
+          checkboxGroupInput(inputId="MapHide", label=strong("Show:"),inline=TRUE,
+            choices=c("Zoom", "Map Controls"="MapControls", "Legends","Base Layers"="BaseLayers", "Extra Layers"="ExtraLayers"),
+            selected=c("MapControls","Legends","Zoom","BaseLayers","ExtraLayers"))
       )
     )
     
-    
-  ),
+  ),  #end of Map tab
 
 ###############################  Tables Tab
   tabPanel("Data Tables",
@@ -99,11 +107,12 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
         
         br(),
        
-        radioButtons(inputId="TableValues", label="Type of Data", 
-          choices=c("Individual Species - All data from 1 year"="individual","Individual Species - All detections"="detects", 
-                    "Number of Species"="richness", "Bird Community Index (BCI)"="bci"), inline=F),
-       
-        uiOutput("ParkTableSelect")
+        tags$div(title="Select the type of data you are interested in.",
+          radioButtons(inputId="TableValues", label="Type of Data", 
+            choices=c("Individual Species - All data from 1 year"="individual","Individual Species - All detections"="detects", 
+                    "Number of Species"="richness", "Bird Community Index (BCI)"="bci"), inline=F)
+        ),
+        tags$div(title="Select a park.",uiOutput("ParkTableSelect"))
       ),
       wellPanel(
       
@@ -111,15 +120,18 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       
         br(),
         
-        selectizeInput(inputId="TableSpecies",choices=NULL,label="Species"), #updated in server.r
+        tags$div(title="Select a species.",
+                 selectizeInput(inputId="TableSpecies",choices=NULL,label="Species")), #updated in server.r
       
-        sliderInput(inputId="TableYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T),
-     # sliderInput(inputId="TableYear2", label="Year:", min=2007,max=2014,value=c(2007,2014), sep="",step=1, ticks=T),
+        tags$div(title="Select a year.",
+                 sliderInput(inputId="TableYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T)),
       
-        radioButtons(inputId="TableBand", label="Distance from Observer:",
-                   choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")),
+        tags$div(title="Include birds at what distance from the observer?",
+                 radioButtons(inputId="TableBand", label="Distance from Observer:",
+                   choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))),
         hr(),
-        radioButtons(inputId="TableNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)
+        tags$div(title="Use common name, Latin name, or American Ornithological Union code",
+          radioButtons(inputId="TableNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE))
       )
     ),
     
@@ -142,32 +154,49 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       wellPanel(
         h4(strong("Select Data:")),
         br(),
-        uiOutput("ParkPlotSelect"),
-        selectizeInput(inputId="PlotSpecies",choices=NULL,label="Species"), #updated in server.r
-        radioButtons(inputId="PlotBand", label="Distance from Observer:",
+        tags$div(title="Select a park.",uiOutput("ParkPlotSelect")),
+        tags$div(title="Select a species.",
+                 selectizeInput(inputId="PlotSpecies",choices=NULL,label="Species")), #updated in server.r
+        tags$div(title="Include birds at what distance from the observer?",
+                 radioButtons(inputId="PlotBand", label="Distance from Observer:",
                      choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")
-        ),
-        radioButtons(inputId="PlotNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)
+        )),
+        tags$div(title="Use commmon name, Latin name, or American Ornithological Union code",
+                 radioButtons(inputId="PlotNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), 
+                              inline=TRUE))
       )
     ),
     column(9,
       tabsetPanel(id="GraphOutputs", type="pills", 
-        tabPanel(title="Individual Species", value="Detects",
+        tabPanel(tags$div(title="Graphs of number of birds observed","Individual Species"), value="Detects",
            ggvisOutput("DetectsPlot")
         ),
-        tabPanel(title="Number of Species", value="Richness",
+        tabPanel(tags$div(title="Graphs of number of species found", "Number of Species"), value="Richness",
           ggvisOutput("RichnessPlot")
         ),
-        tabPanel(title="Bird Community Index", value="BCI",
+        tabPanel(tags$div(title= "Graphs of Bird Community Index values","Bird Community Index"), value="BCI",
           ggvisOutput("BCIPlot")
         )
       )
     )
     
   ), # end plots tab
+
+### Species List Tab
   tabPanel("Species Lists",
+    column(3,
+      wellPanel(
+        tags$div(title="Choose the type of species list you want",
+                   radioButtons(inputId="SpeciesListType", label=strong("Choose a species list"),
+                     choices=c("Only birds found during monitoring"="Points","All birds known from the park"="All"))),
+        tags$div(title="Choose a park",uiOutput("ParkListSelect")),
+        tags$div(title="Choose one or more monitoring points",uiOutput("PointListSelect"))
+      )
+    ),
+    column(8,
            DT::dataTableOutput("SpeciesList")
-  ),
+    )
+  ),  # end Species List tab
   tabPanel("About",
               h3("Add this")
   )
