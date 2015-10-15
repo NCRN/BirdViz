@@ -39,7 +39,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       tags$div(title="Species to display on map",
                selectizeInput(inputId="MapSpecies",choices=NULL,label="Species")), #updated in server.r
       tags$div(title="Display bird observations from Vist 1, Visit 2, or the maixmum of the two ",
-               selectizeInput(inputId="SpeciesValues", label="Data", choices=c("Maximum Observed", "Visit 1", "Visit 2")))
+               selectizeInput(inputId="SpeciesValues", label="Visit", choices=c("Maximum Observed", "Visit 1", "Visit 2")))
       ),
       
       tags$div(title="Choose which year's data to display",
@@ -51,12 +51,24 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       h4("eBird Data",class="panel-heading", id="EBirdTitle"),
       tags$div(title="Display citizen science from ebird (non-NPS data)",
         checkboxInput(inputId="MapEBird", label="Show recent eBird Data?")),
-      tags$div(title="# of days worth of data to display",
+      hidden(
+        tags$div(title="# of days worth of data to display",
       sliderInput(inputId="MapEBirdDays", label= "Display data from how many days prior to today?",min=1,max=30,sep="",value=14 ))
+      ),
+      hr(),
+      actionButton(inputId="AboutMap", class="btn btn-primary", label="About the map...")
     ),
    
-    
-    
+    ##### About the Map panel
+    hidden(
+    fixedPanel(class="panel panel-primary controls",draggable=FALSE,cursor="auto",top=80,bottom="auto",height="520",
+               left=450,width="500",id="AboutMapPanel",style="padding: 0px",
+               div(class="panel-heading", h4("About the Map" )),
+               div(class="panel-body",style="height: 400px;  overflow-y: scroll",
+                   includeHTML("./www/AboutMap.html")),
+               div(class="panel-footer", 
+                   actionButton(inputId="CloseAboutMap",class="btn btn-primary",label="Close"))  )
+    ),
 
     ###### Zoom Box 
     fixedPanel(class="panel panel-default controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="auto",
@@ -76,11 +88,11 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     ),
     
     
-#     ######  Extra Layer BoX
+#     ######  Map Layer BoX
     
     fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="80%", bottom="auto",
                height="auto", left="50px", width="auto",id="ExtraLayerPanel",
-               strong("Extra Layers:"),
+               strong("Map Layers:"),
                tags$div(title="Add additional informtaion to the parks on the map.",
                 radioButtons(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), 
                             selected="None", inline=TRUE))

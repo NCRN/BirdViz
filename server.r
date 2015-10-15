@@ -43,13 +43,14 @@ shinyServer(function(input,output,session){
     toggle(id="EBirdTitle", condition=(input$MapValues=="individual"))
     toggle(id="MapEBird", condition = (input$MapValues=="individual"))
     toggle(id="MapEBirdDays", condition =(input$MapEBird & input$MapValues=="individual")) 
+    onclick(id="AboutMap", expr= toggle(id="AboutMapPanel"))
+    onclick(id="CloseAboutMap", expr= toggle(id="AboutMapPanel")) 
     
     ### Tables
     toggle(id="TableSpecies", condition=input$TableValues %in% c("individual","detects"))
     toggle(id="TableBand", condition=input$TableValues == "individual")
     toggle(id="TableNames", condition=input$TableValues%in% c("individual","detects"))
     toggle(id="TableYear", condition=input$TableValues %in% c("individual","richness","bci") )
-  #  toggle(id="TableYear2", condition=input$TableValues == "richness")
     
     ###Graphs
     toggle(id="PlotSpecies", condition=input$GraphOutputs=="Detects")
