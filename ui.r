@@ -51,10 +51,10 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       h4("eBird Data",class="panel-heading", id="EBirdTitle"),
       tags$div(title="Display citizen science from ebird (non-NPS data)",
         checkboxInput(inputId="MapEBird", label="Show recent eBird Data?")),
-      hidden(
+      #hidden(
         tags$div(title="# of days worth of data to display",
-      sliderInput(inputId="MapEBirdDays", label= "Display data from how many days prior to today?",min=1,max=30,sep="",value=14 ))
-      ),
+      sliderInput(inputId="MapEBirdDays", label= "Display data from how many days prior to today?",min=1,max=30,sep="",value=14 )),
+      #),
       hr(),
       actionButton(inputId="AboutMap", class="btn btn-primary", label="About the map...")
     ),
@@ -65,7 +65,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
                left=450,width="500",id="AboutMapPanel",style="padding: 0px",
                div(class="panel-heading", h4("About the Map" )),
                div(class="panel-body",style="height: 400px;  overflow-y: scroll",
-                   includeHTML("./www/AboutMap.html")),
+                  includeHTML("./www/AboutMap.html")),
                div(class="panel-footer", 
                    actionButton(inputId="CloseAboutMap",class="btn btn-primary",label="Close"))  )
     ),
@@ -104,7 +104,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
          height="auto", left="50px", width="auto",
       tags$div(title="You can hide controls that you are not using.",
           checkboxGroupInput(inputId="MapHide", label=strong("Show:"),inline=TRUE,
-            choices=c("Zoom", "Map Controls"="MapControls", "Legends","Base Layers"="BaseLayers", "Extra Layers"="ExtraLayers"),
+            choices=c("Zoom", "Map Controls"="MapControls", "Legends","Base Layers"="BaseLayers", "Map Layers"="ExtraLayers"),
             selected=c("MapControls","Legends","Zoom","BaseLayers","ExtraLayers"))
       )
     )
@@ -143,7 +143,9 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
                    choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))),
         hr(),
         tags$div(title="Use common name, Latin name, or American Ornithological Union code",
-          radioButtons(inputId="TableNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE))
+          radioButtons(inputId="TableNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
+        
+        actionButton(inputId="AboutTables", class="btn btn-primary", label="About the tables...")
       )
     ),
     
@@ -157,6 +159,17 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       DT::dataTableOutput("PointTable"),
       br(),
       h3("Click on any row to see that location on the map.")
+    ),
+    
+    ##### About the tables panel
+    hidden(
+      fixedPanel(class="panel panel-primary controls",draggable=FALSE,cursor="auto",top=80,bottom="auto",height="520",
+                 left=450,width="500",id="AboutTablesPanel",style="padding: 0px",
+                 div(class="panel-heading", h4("About the Tables" )),
+                 div(class="panel-body",style="height: 400px;  overflow-y: scroll",
+                     includeHTML("./www/AboutTables.html")),
+                 div(class="panel-footer", 
+                     actionButton(inputId="CloseAboutTables",class="btn btn-primary",label="Close"))  )
     )
   ),  # end Tables Tab
   

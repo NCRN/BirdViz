@@ -51,6 +51,8 @@ shinyServer(function(input,output,session){
     toggle(id="TableBand", condition=input$TableValues == "individual")
     toggle(id="TableNames", condition=input$TableValues%in% c("individual","detects"))
     toggle(id="TableYear", condition=input$TableValues %in% c("individual","richness","bci") )
+    onclick(id="AboutTables", expr= toggle(id="AboutTablesPanel"))
+    onclick(id="CloseAboutTables", expr= toggle(id="AboutTablesPanel")) 
     
     ###Graphs
     toggle(id="PlotSpecies", condition=input$GraphOutputs=="Detects")
