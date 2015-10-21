@@ -57,9 +57,13 @@ shinyServer(function(input,output,session){
     ###Graphs
     toggle(id="PlotSpecies", condition=input$GraphOutputs=="Detects")
     toggle(id="PlotNames", condition=input$GraphOutputs=="Detects")
+    onclick(id="AboutGraphs", expr= toggle(id="AboutGraphsPanel"))
+    onclick(id="CloseAboutGraphs", expr= toggle(id="AboutGraphsPanel")) 
     
     ### SpeciesList
     toggle(id="PointListSelect", condition=input$SpeciesListType=="Points")
+    onclick(id="AboutLists", expr= toggle(id="AboutListsPanel"))
+    onclick(id="CloseAboutLists", expr= toggle(id="AboutListsPanel")) 
   })
   
 
@@ -444,10 +448,10 @@ shinyServer(function(input,output,session){
     detected, and not instances where the bird was absent, choose the "Individual Species - All detections" table instead.')
   })
   
-  IndividualParkTitle<-reactive({paste("Mean",BirdName()," Detected per Point")})
+  IndividualParkTitle<-reactive({paste("Mean number of ",BirdName()," Detected per Point")})
   
   IndividualParkCaption<-reactive({paste0("Mean number of ",BirdName(),"s detected per monitoring point in each park in ",
-                    input$TableYear,". This table includes birds found at ",BandOut()," from the observer.") })
+                    input$TableYear,". This is the number of birds detected during a visit divided by the number of monitoring points visited. This table includes birds found at ",BandOut()," from the observer.") })
        
   ####  Detects tables, titles, captions, basedata used to calculate other tables
   
@@ -472,11 +476,14 @@ shinyServer(function(input,output,session){
     DetectsBase() %>%
       group_by(Admin_Unit_Code) %>% 
       summarize("Points where Found"=sum((!is.na(Visit1) &Visit1 > 0) |(!is.na(Visit2) &Visit2>0)),
-                "Total Points Monitored"=n()) %>% 
-      dplyr::select(.,`Points where Found`,`Total Points Monitored`) %>% 
+                "Total Points Monitored"=n()) %>%
+      mutate("Percent"=paste0(round(100*(`Points where Found`/`Total Points Monitored`)),"%"))  %>%  
+      dplyr::select(.,`Points where Found`,`Total Points Monitored`,`Percent`) %>% 
       rbind(c(DetectsBase() %>% 
                 summarize( "Points where Found"=sum((!is.na(Visit1) &Visit1 > 0) |(!is.na(Visit2) &Visit2>0)),
-                           "Total Points Monitored"=n()))) %>% 
+                           "Total Points Monitored"=n()) %>% 
+                mutate("Percent"=paste0(round(100*(`Points where Found`/`Total Points Monitored`)),"%"))
+      )) %>% 
       t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks"))
   })
   
@@ -486,7 +493,7 @@ shinyServer(function(input,output,session){
   })
   
   DetectsParkTitle<-reactive({paste("Number of Points with", getBirdNames(object=NCRN[[1]], names =  input$TableSpecies, 
-                                                      in.style="AOU", out.style = input$TableNames), "Summed Across All Years")})
+                                                      in.style="AOU", out.style = input$TableNames), " - All Years")})
   
   DetctsParkCaption<-reactive({paste0('"Points where Found" is the number of plots with ',BirdName(),'s detected duing at least one visit in a given year. Each year is treated seprately, so if a bird appears in a plot during 3 different years it will be counted three times. "Total Points Monitored" is the number of points monitored in park, added up over all years.' )})
   
@@ -717,7 +724,7 @@ shinyServer(function(input,output,session){
   
   #   #### Park control for plots
   output$ParkPlotSelect<-renderUI({
-    selectizeInput(inputId="ParkPlot",label="Park", choices=c("All Parks"="All", ParkList), selected="All" ) 
+    selectizeInput(inputId="ParkPlot",label="Park:", choices=c("All Parks"="All", ParkList), selected="All" ) 
   })
   
  PlotParkUse<-reactive({  if (input$ParkPlot=="All") NCRN else NCRN[[input$ParkPlot]] })
@@ -734,7 +741,7 @@ shinyServer(function(input,output,session){
   
   
   observe({
-    updateSelectizeInput(session,inputId="PlotSpecies",label="Species", choices=BirdPlotNames())
+    updateSelectizeInput(session,inputId="PlotSpecies",label="Species:", choices=BirdPlotNames())
   })
   
   
@@ -868,7 +875,7 @@ output$PointListSelect <-renderUI({
   validate(
     need(input$ParkList, message="Please select a Park")
   )
-  selectizeInput(inputId="ListPointsUse", choices=c("All Plots"="All", getPoints(ListParkUse())$Point_Name),
+  selectizeInput(inputId="ListPointsUse", choices=c("All Points"="All", getPoints(ListParkUse())$Point_Name),
                  label="Points (optional)", multiple=TRUE, selected="All"
   )
 })
@@ -892,17 +899,17 @@ NPSpeciesURL<-reactive({
 
 NPSpeciesList<-reactive({
   fromJSON(NPSpeciesURL())%>% 
-  dplyr::select(ScientificName,CommonNames,Occurrence) %>% 
+  dplyr::select(CommonNames, ScientificName,Occurrence) %>% 
+  arrange(CommonNames) %>% 
   rename('Latin Name'=ScientificName, 'Common Name'=CommonNames)
 })
 
 MonitoringList<-reactive({
  tbl_df(data.frame( 'Latin.Name'= getChecklist(object=NCRN[[input$ParkList]], points=ListPoints(),out.style="Latin"))) %>% 
     mutate('Common Name' = getBirdNames(object=NCRN[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "common")) %>% 
-    rename('Latin Name'= Latin.Name)
+    rename('Latin Name'= Latin.Name) %>% arrange(`Common Name`) %>%  .[,c(2,1)]
 })
 
-#ScientificName, CommonNames, Occurnace
 
 output$SpeciesList<-DT::renderDataTable(server=FALSE,
   datatable(rownames=F,caption="Species List", class="display compact",selection="single",

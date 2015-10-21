@@ -10,7 +10,8 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
           
   tabPanel(title="Map", 
     useShinyjs(),
-    includeScript("http://www.nps.gov/lib/bootstrap/3.3.2/js/nps-bootstrap.min.js"),
+    #includeScript("http://www.nps.gov/lib/bootstrap/3.3.2/js/nps-bootstrap.min.js"),
+    
     div(class="outer",
       tags$head(includeCSS("./www/mapstyles.css") ),# brings in  css file that lets map take up whole screen
       tags$head(HTML('<link rel="icon", href="AH_small_flat_4C_12x16.png", type="image/png" />')), #icon for broswer tab
@@ -61,7 +62,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
    
     ##### About the Map panel
     hidden(
-    fixedPanel(class="panel panel-primary controls",draggable=FALSE,cursor="auto",top=80,bottom="auto",height="520",
+    fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
                left=450,width="500",id="AboutMapPanel",style="padding: 0px",
                div(class="panel-heading", h4("About the Map" )),
                div(class="panel-body",style="height: 400px;  overflow-y: scroll",
@@ -163,8 +164,8 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     
     ##### About the tables panel
     hidden(
-      fixedPanel(class="panel panel-primary controls",draggable=FALSE,cursor="auto",top=80,bottom="auto",height="520",
-                 left=450,width="500",id="AboutTablesPanel",style="padding: 0px",
+      fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
+                 left=475,width="500",id="AboutTablesPanel",style="padding: 0px",
                  div(class="panel-heading", h4("About the Tables" )),
                  div(class="panel-body",style="height: 400px;  overflow-y: scroll",
                      includeHTML("./www/AboutTables.html")),
@@ -188,7 +189,8 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
         )),
         tags$div(title="Use commmon name, Latin name, or American Ornithological Union code",
                  radioButtons(inputId="PlotNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), 
-                              inline=TRUE))
+                              inline=TRUE)),
+        actionButton(inputId="AboutGraphs", class="btn btn-primary", label="About the graphs...")
       )
     ),
     column(9,
@@ -203,6 +205,15 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
           ggvisOutput("BCIPlot")
         )
       )
+    ),
+    hidden(
+      fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
+                 left=475,width="500",id="AboutGraphsPanel",style="padding: 0px",
+                 div(class="panel-heading", h4("About the Graphs" )),
+                 div(class="panel-body",style="height: 400px;  overflow-y: scroll",
+                     includeHTML("./www/AboutGraphs.html")),
+                 div(class="panel-footer", 
+                     actionButton(inputId="CloseAboutGraphs",class="btn btn-primary",label="Close"))  )
     )
     
   ), # end plots tab
@@ -215,16 +226,31 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
                    radioButtons(inputId="SpeciesListType", label=strong("Choose a species list"),
                      choices=c("Only birds found during monitoring"="Points","All birds known from the park"="All"))),
         tags$div(title="Choose a park",uiOutput("ParkListSelect")),
-        tags$div(title="Choose one or more monitoring points",uiOutput("PointListSelect"))
+        tags$div(title="Choose one or more monitoring points",uiOutput("PointListSelect")),
+        actionButton(inputId="AboutLists", class="btn btn-primary", label="About the species lists...")
       )
     ),
     column(8,
            DT::dataTableOutput("SpeciesList")
+    ),
+    hidden(
+      fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
+                 left=475,width="500",id="AboutListsPanel",style="padding: 0px",
+                 div(class="panel-heading", h4("About the Species Lists" )),
+                 div(class="panel-body",style="height: 400px;  overflow-y: scroll",
+                     includeHTML("./www/AboutLists.html")),
+                 div(class="panel-footer", 
+                     actionButton(inputId="CloseAboutLists",class="btn btn-primary",label="Close"))  )
     )
   ),  # end Species List tab
-  tabPanel("About",
-              h3("Add this")
-  )
+  navbarMenu(title="About the Project",
+    tabPanel("Project Information",
+             includeHTML("./www/ProjectInfo.html")
+    ),
+    tabPanel("Citations and References",
+             includeHTML("./www/Citations.html")
+    )
+  )# end of About tab
 
            
 )## end UI
