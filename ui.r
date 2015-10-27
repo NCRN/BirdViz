@@ -174,7 +174,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     )
   ),  # end Tables Tab
   
-###   Plots Tab
+###   Graphs Tab
   tabPanel("Graphs",
     column(3,
       wellPanel(
@@ -196,13 +196,16 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     column(9,
       tabsetPanel(id="GraphOutputs", type="pills", 
         tabPanel(tags$div(title="Graphs of number of birds observed","Individual Species"), value="Detects",
-           ggvisOutput("DetectsPlot")
+           ggvisOutput("DetectsPlot"),
+           textOutput("DetectsCaption")
         ),
         tabPanel(tags$div(title="Graphs of number of species found", "Number of Species"), value="Richness",
-          ggvisOutput("RichnessPlot")
+          ggvisOutput("RichnessPlot"),
+          textOutput("RichnessCaption")
         ),
         tabPanel(tags$div(title= "Graphs of Bird Community Index values","Bird Community Index"), value="BCI",
-          ggvisOutput("BCIPlot")
+          ggvisOutput("BCIPlot"),
+          textOutput("BCICaption")
         )
       )
     ),
@@ -216,7 +219,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
                      actionButton(inputId="CloseAboutGraphs",class="btn btn-primary",label="Close"))  )
     )
     
-  ), # end plots tab
+  ), # end graphs tab
 
 ### Species List Tab
   tabPanel("Species Lists",

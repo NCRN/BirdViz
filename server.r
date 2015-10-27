@@ -804,13 +804,22 @@ shinyServer(function(input,output,session){
   PlotParkName<-reactive(if (input$ParkPlot=="All") "All NCRN Parks" else getParkNames(PlotParkUse(),"short" ))
   
   
-  PlotDetectTitle<-reactive({paste0("Mean ",PlotBirdName(),"s Detected per Point in ",PlotParkName() )})
+  PlotDetectTitle<-reactive({paste0(PlotBirdName(),"s Detected per Point in ",PlotParkName() )})
   
   PlotRichnessTitle<-reactive({paste0("Number of Species Detected in ", PlotParkName())})
   
   PlotBCITitle<-reactive({paste0("Bird Community Index for ",PlotParkName())})
   
   
+  PlotDetectCaption<-reactive({paste0("Average (mean) number of ",PlotBirdName()," detected per point in ",PlotParkName(), " at ", PlotBandOut(),". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis indicates the number of birds deteced divided by the number of points monitored. Additional birds were likely present at the points, but not detected.")})
+  
+  PlotRichnessCaption<-reactive({paste0("Number of bird species detected during monitoring in ",PlotParkName()," at ",PlotBandOut(),
+            ". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis indicates the number of birds species detected during monitoring. Additional bird species were likely present at the points, but not detected.")})
+
+  PlotBCICaption<-reactive({paste0("Bird Community Index (BCI) for ",PlotParkName()," at ", PlotBandOut(),
+                                        ". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis indicates the BCI, which indicates the conservation status of the bird community. The points on the graph are the average (mean) BCI for all points monitored during each year.")})
+  
+    
 observe({
   if(!is.null(input$ParkPlot) & input$GraphOutputs=="Detects"){
     DetectsPlotData %>% 
@@ -824,9 +833,19 @@ observe({
         {if(max(DetectsPlotData()$Mean)==0) scale_numeric(.,"y",domain=c(0,.5)) else .} %>% 
         add_legend(scales="fill", title="Visit", properties=legend_props(title=list(fontSize=16), labels=list(fontSize=16))) %>% 
         add_axis("x", orient="top",ticks=0, title=PlotDetectTitle(),  # Annoying hack for plot title
-                 properties=axis_props(axis=list(stroke="white"), labels=list(fontSize=0),title=list(fontSize=32) )) %>% 
+                 properties=axis_props(axis=list(stroke="white"), ticks=list(stroke="white"),
+                                       labels=list(fontSize=0),title=list(fontSize=32) )) %>% 
         bind_shiny("DetectsPlot")
   }
+})
+
+output$DetectsCaption<-renderText({
+  validate(
+    need( input$PlotSpecies ," "),
+    need( input$ParkPlot , " "),
+    need( input$PlotBand," ")
+  )
+  PlotDetectCaption()
 })
 
 observe({
@@ -841,11 +860,21 @@ observe({
       scale_numeric("y",domain=c(0,150) )%>% 
       hide_legend(scales="fill" ) %>% 
       add_axis("x", orient="top",ticks=0, title=PlotRichnessTitle(),  # Annoying hack for plot title
-               properties=axis_props(axis=list(stroke="white"), labels=list(fontSize=0),title=list(fontSize=32) )) %>% 
+               properties=axis_props(axis=list(stroke="white"), tick=list(stroke="white"), 
+                                     labels=list(fontSize=0),title=list(fontSize=32) )) %>% 
       bind_shiny("RichnessPlot")
     }
 })
-    
+
+output$RichnessCaption<-renderText({
+  validate(
+    need( input$PlotSpecies ," "),
+    need( input$ParkPlot , " "),
+    need( input$PlotBand," ")
+  )
+  PlotRichnessCaption()
+})
+
 observe({
   if(!is.null(input$ParkPlot) & input$GraphOutputs=="BCI"){  
     BCIPlotData %>% 
@@ -870,6 +899,15 @@ observe({
   }
 })
 
+output$BCICaption<-renderText({
+  validate(
+    need( input$PlotSpecies ," "),
+    need( input$ParkPlot , " "),
+    need( input$PlotBand," ")
+  )
+PlotBCICaption()
+  }) 
+
 ####################################
 ### Species Lists ##################
 
@@ -883,7 +921,7 @@ ListParkUse<-reactive({  if (input$ParkList=="All") NCRN else NCRN[[input$ParkLi
 
 output$PointListSelect <-renderUI({
   validate(
-    need(input$ParkList, message="Please select a Park")
+    need(input$ParkList, message="Please select a park.")
   )
   selectizeInput(inputId="ListPointsUse", choices=c("All Points"="All", getPoints(ListParkUse())$Point_Name),
                  label="Points (optional)", multiple=TRUE, selected="All"
@@ -898,7 +936,7 @@ ListPoints<-reactive({
 })
 
 
-### Get speceis lists from IRMA / NPSpecies
+### Get species lists from IRMA / NPSpecies
 
 NPSpeciesURL<-reactive({
   validate(
@@ -915,6 +953,9 @@ NPSpeciesList<-reactive({
 })
 
 MonitoringList<-reactive({
+  validate(
+    need(input$ParkList, "Please select a park.")
+  )
  tbl_df(data.frame( 'Latin.Name'= getChecklist(object=NCRN[[input$ParkList]], points=ListPoints(),out.style="Latin"))) %>% 
     mutate('Common Name' = getBirdNames(object=NCRN[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "common")) %>% 
     rename('Latin Name'= Latin.Name) %>% arrange(`Common Name`) %>%  .[,c(2,1)]
