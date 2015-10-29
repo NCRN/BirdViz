@@ -651,14 +651,24 @@ shinyServer(function(input,output,session){
   })
   
   
-  output$PointTable<-DT::renderDataTable (datatable(data=PointTableData(),rownames=F,caption=PointTableCaption(), 
-                  class="display compact",selection="single"),server=F)
+  output$PointTable<-DT::renderDataTable( 
+    datatable(
+      data=PointTableData(),rownames=F,caption=PointTableCaption(), 
+                  class="display compact",selection="single", extensions="TableTools", 
+                  options=list(dom = 'T<"clear">lfrtip', tableTools=list(sSwfPath=copySWF('www',pdf=TRUE),
+                  aButtons=list('copy','print','csv','pdf')))
+    ),
+    server=F)
     
     
     
   output$ParkTable<-DT::renderDataTable({
-    datatable(data=ParkTableData(), caption=ParkTableCaption(), class="display compact",
-                  options=list(dom="t", ordering=FALSE), selection="none")
+    datatable(
+      data=ParkTableData(), caption=ParkTableCaption(), class="display compact",
+                  options=list(dom='T<"clear">t', ordering=FALSE, tableTools=list(sSwfPath=copySWF('www',pdf=TRUE),
+                                                                        aButtons=list('copy','print','csv','pdf'))
+    ), 
+    selection="none")
   })
 
   
@@ -718,6 +728,9 @@ shinyServer(function(input,output,session){
         )
   })
 
+  
+  ### data table download
+  
 
   
   #############################  Graphs Tab
