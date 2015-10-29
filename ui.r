@@ -122,7 +122,8 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
        
         tags$div(title="Select the type of data you are interested in.",
           radioButtons(inputId="TableValues", label="Type of Data", 
-            choices=c("Individual Species - All data from 1 year"="individual","Individual Species - All detections"="detects", 
+            choices=c("Individual Species"="individual",
+                      #"Individual Species - All detections"="detects", 
                     "Number of Species"="richness", "Bird Community Index (BCI)"="bci"), inline=F)
         ),
         tags$div(title="Select a park.",uiOutput("ParkTableSelect"))
@@ -138,10 +139,17 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
       
         tags$div(title="Select a year.",
                  sliderInput(inputId="TableYear", label="Year:", min=2007,max=2014,value=2014, sep="",step=1, ticks=T)),
+        
+        tags$div(title="Select a range of oen or more years.",
+                 sliderInput(inputId="TableYear2", label="Year:", min=2007,max=2014,value=c(2007,2014), sep="",step=1, ticks=T)),
+        
       
         tags$div(title="Include birds at what distance from the observer?",
                  radioButtons(inputId="TableBand", label="Distance from Observer:",
                    choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))),
+        tags$div(title="Show only the data for points were the bird was detected",
+                 checkboxInput(inputId="TableZeroHide", label="Hide points wth no detections", value=FALSE)
+        ),
         hr(),
         tags$div(title="Use common name, Latin name, or American Ornithological Union code",
           radioButtons(inputId="TableNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
