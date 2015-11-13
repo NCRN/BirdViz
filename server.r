@@ -102,14 +102,22 @@ shinyServer(function(input,output,session){
 
 #### Make map with Base Layer and Layer Controls
   
+  NPSAttrib<-HTML("&copy; <a href='http://mapbox.com/about/maps' target='_blank'>Mapbox</a> 
+          &copy; <a href='http://openstreetmap.org/copyright' target='_blank'>OpenStreetMap</a> contributors | 
+          <a class='improve-park-tiles' href='http://www.nps.gov/npmap/park-tiles/improve/' 
+                                             target='_blank'>Improve Park Tiles</a>")
+  
   observe({
     leafletProxy("BirdMap") %>% 
       
     clearTiles() %>% 
       
-    addTiles(group="Map", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.2yxv8n84,nps.jhd2e8lb/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q", options=tileOptions(minZoom=8)) %>% 
-    addTiles(group="Imagery", urlTemplate="//{s}.tiles.mapbox.com/v4/mapbox.satellite,nps.gdipreks,nps.08c8af87/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",options=tileOptions(minZoom=8)) %>% 
-    addTiles(group="Slate", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.68926899,nps.502a840b/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",options=tileOptions(minZoom=8) ) %>% 
+    addTiles(group="Map", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.2yxv8n84,nps.jhd2e8lb/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",
+             attribution=NPSAttrib, options=tileOptions(minZoom=8)) %>% 
+    addTiles(group="Imagery", urlTemplate="//{s}.tiles.mapbox.com/v4/mapbox.satellite,nps.gdipreks,nps.08c8af87/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",
+             attribution=NPSAttrib, options=tileOptions(minZoom=8)) %>% 
+    addTiles(group="Slate", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.68926899,nps.502a840b/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",
+             attribution=NPSAttrib, options=tileOptions(minZoom=8) ) %>% 
     {if("BaseLayers" %in% input$MapHide) 
       
     addLayersControl(map=., baseGroups=c("Map","Imagery","Slate"),
@@ -222,8 +230,8 @@ shinyServer(function(input,output,session){
      removeControl(layerId="CircleLegend") %>% 
      {if("Legends" %in% input$MapHide) 
         addLegend(map=., layerId="CircleLegend",pal=MapColors(), 
-              values=LegendValues(),
-             na.label="Not Visited", title=circleLegend() )} #, className="panel panel-default info legend"
+              values=LegendValues(),opacity=1,
+             na.label="Not Visited", title=circleLegend(), className="panel panel-default info legend" )}
   })
   
  ### User Clicks on map not on a shape - popups close
