@@ -310,8 +310,8 @@ shinyServer(function(input,output,session){
   
   ### Add additional layers
   withProgress(message="Loading ...  Please Wait",value=1,{
-    Ecoregion<-readOGR(dsn="T:/I&M/MONITORING/Forest_Birds/BirdViz/Maps/ecoregion.geojson","OGRGeoJSON")
-    Forested<-readOGR(dsn="T:/I&M/MONITORING/Forest_Birds/BirdViz/Maps/Forests.geojson","OGRGeoJSON")
+    Ecoregion<-readOGR(dsn="./Maps/ecoregion.geojson","OGRGeoJSON")
+    Forested<-readOGR(dsn="./Maps/Forests.geojson","OGRGeoJSON")
   })
   
   observe({
@@ -858,7 +858,7 @@ observe({
         add_legend(scales="fill", title="Visit", properties=legend_props(title=list(fontSize=16), labels=list(fontSize=16))) %>% 
         add_axis("x", orient="top",ticks=0, title=PlotDetectTitle(),  # Annoying hack for plot title
                  properties=axis_props(axis=list(stroke="white"), ticks=list(stroke="white"),
-                                       labels=list(fontSize=0),title=list(fontSize=32) )) %>% 
+                                       labels=list(fontSize=0),title=list(fontSize=24) )) %>% 
         bind_shiny("DetectsPlot")
   }
 })
@@ -885,7 +885,7 @@ observe({
       hide_legend(scales="fill" ) %>% 
       add_axis("x", orient="top",ticks=0, title=PlotRichnessTitle(),  # Annoying hack for plot title
                properties=axis_props(axis=list(stroke="white"), tick=list(stroke="white"), 
-                                     labels=list(fontSize=0),title=list(fontSize=32) )) %>% 
+                                     labels=list(fontSize=0),title=list(fontSize=24) )) %>% 
       bind_shiny("RichnessPlot")
     }
 })
@@ -918,7 +918,7 @@ observe({
       add_legend("fill") %>% 
       hide_legend("stroke") %>% 
       add_axis("x", orient="top",ticks=0, title=PlotBCITitle(),  # Annoying hack for plot title
-               properties=axis_props(axis=list(stroke="white"), labels=list(fontSize=0),title=list(fontSize=32) )) %>% 
+               properties=axis_props(axis=list(stroke="white"), labels=list(fontSize=0),title=list(fontSize=24) )) %>% 
       bind_shiny("BCIPlot")
   }
 })

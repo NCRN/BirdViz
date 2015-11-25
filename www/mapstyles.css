@@ -28,23 +28,14 @@ hr {margin: 5px;}
 }
 
 .controls {                           
-
-/* Appearance */
-
   background-color: white;
-  padding: 0 20px 10px 20px;
+  padding: 0 20px 5px 20px;
   cursor: move;                        
-
-/* Fade out while not hovering */
-  opacity: 1;                     
-  transition: opacity 500ms 1s;       
-/* zoom 0.9;  Removed as it messes up sliders */
 }                                    
 
-/* Fade in while hovering */
-.controls:hover {
-  opacity: 0.95;
-  transition-delay: 0;
+
+.shiny-input-container {
+  margin: 0 0 5px 0
 }
 
 /* Position and style citation */
@@ -55,11 +46,6 @@ hr {margin: 5px;}
   font-size: 12px;
 }
  
-/* If not using map tiles, show a white background */
- .leaflet-container {
-    background-color: white !important;
-  } 
-
 .container-fluid{
 padding: 0 0 0 0;
 }
@@ -98,4 +84,7 @@ padding: 0 0 0 0;
   height: 70px;
 }
 
+.navbar {
+ margin-bottom: 0px;
+}
 
