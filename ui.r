@@ -15,6 +15,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     div(class="outer",
       tags$head(includeCSS("./www/mapstyles.css") ),# brings in  css file that lets map take up whole screen
       tags$head(HTML('<link rel="icon", href="AH_small_flat_4C_12x16.png", type="image/png" />')), #icon for broswer tab
+      tags$head(includeScript("http://www.nps.gov/common/commonspot/templates/js/federated-analytics.js")),
       leafletOutput("BirdMap", width = "100%", height = "100%")
     ),
     
