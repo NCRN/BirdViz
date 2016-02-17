@@ -7,6 +7,7 @@ library(rgdal)
 library(DT)
 library(tidyr)
 library(ggvis)
+library(shinyjs)
 library(jsonlite, pos=100)
 
 
