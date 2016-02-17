@@ -348,7 +348,7 @@ shinyServer(function(input,output,session){
 
   EBirdGet<-function(Species,State,Days){           ### Get data from EBird
     tryCatch(                                       ### tryCatch is for when our name aren't in ebird (e.g. "unidentified bird")
-      fromJSON(url(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-",State,"&sci=",
+      fromJSON(URLencode(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-",State,"&sci=",
                         Species,"&back=",Days,"&fmt=json"))),
       error=function(cond){return(list())}
     )
