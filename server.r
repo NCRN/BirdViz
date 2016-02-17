@@ -466,7 +466,7 @@ shinyServer(function(input,output,session){
   
 #   DetectsBase<-reactive({
 #     CountXVisit(object=NCRN,
-#                 years=2007:2014, 
+#                 years=2007:2015, 
 #                 band= NA, 
 #                 AOU=input$TableSpecies)
 #   })
@@ -783,8 +783,8 @@ shinyServer(function(input,output,session){
                band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)), 
                AOU=input$PlotSpecies) %>% 
     { if (input$ParkPlot=="All") . else filter(.,Admin_Unit_Code==input$ParkPlot)} %>% 
-        mutate(Year=factor(Year,labels=paste(paste(c(2007:2014), paste0("(",
-                          sapply(X=2007:2014,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) %>% 
+        mutate(Year=factor(Year,labels=paste(paste(c(2007:2015), paste0("(",
+                          sapply(X=2007:2015,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) %>% 
     group_by(Year) %>% 
 
     summarize("Visit 1"=round(mean(Visit1, na.rm=T),digits=2), "Visit 2"= round( mean(Visit2, na.rm=T),digits=2)) %>% 
@@ -796,19 +796,19 @@ shinyServer(function(input,output,session){
       
   RichnessPlotData<-reactive({
     if(!is.null(input$ParkPlot)){
-    tbl_df(data.frame(Year=2007:2014)) %>% 
+    tbl_df(data.frame(Year=2007:2015)) %>% 
     group_by(Year) %>% 
     mutate(Species=birdRichness(object=PlotParkUse(), years=Year,
                           band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand))) ) %>% 
     ungroup() %>% 
-    mutate(Year=factor(Year,labels=paste(paste(c(2007:2014), paste0("(",
-          sapply(X=2007:2014,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) 
+    mutate(Year=factor(Year,labels=paste(paste(c(2007:2015), paste0("(",
+          sapply(X=2007:2015,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) 
     }
   })  
   
   BCIPlotData<-reactive({
     withProgress(message="Calculating...  Please Wait",value=1,{
-        tbl_df(data.frame(Year=2007:2014)) %>% 
+        tbl_df(data.frame(Year=2007:2015)) %>% 
         group_by(Year) %>% 
         mutate(BCI=BCI(object=PlotParkUse(), years=Year,
               band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)))[["BCI"]] %>% mean(na.rm=T) %>% 
@@ -817,8 +817,8 @@ shinyServer(function(input,output,session){
              vec=c(0,40.1,52.1,60.1,77.1))]
         ) %>% 
         ungroup() %>% 
-        mutate(Year=factor(Year,labels=paste(paste(c(2007:2014), paste0("(",
-            sapply(X=2007:2014,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")")))))
+        mutate(Year=factor(Year,labels=paste(paste(c(2007:2015), paste0("(",
+            sapply(X=2007:2015,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")")))))
     })
   })
 
@@ -851,7 +851,7 @@ observe({
         layer_points(x=~Year, y=~Mean, fill= ~Visit , size:=200, opacity:=.66) %>% 
         add_tooltip(function(x)paste("Year=",x$Year,"<br/>", " Mean Detected =",x$Mean), on="hover" ) %>% 
         add_axis(type="x",title="Year",  properties=axis_props(title=list(fontSize=14))) %>% #format="####",
-        #scale_numeric("x", domain=c(2007,2014))%>% 
+        #scale_numeric("x", domain=c(2007,2015))%>% 
         add_axis(type="y",title="Mean # Birds Detected per Point", title_offset=45, 
                  properties=axis_props(title=list(fontSize=14))) %>% 
         {if(max(DetectsPlotData()$Mean)==0) scale_numeric(.,"y",domain=c(0,.5)) else .} %>% 
@@ -859,6 +859,7 @@ observe({
         add_axis("x", orient="top",ticks=0, title=PlotDetectTitle(),  # Annoying hack for plot title
                  properties=axis_props(axis=list(stroke="white"), ticks=list(stroke="white"),
                                        labels=list(fontSize=0),title=list(fontSize=24) )) %>% 
+        set_options(width="750px", resizable="TRUE") %>% 
         bind_shiny("DetectsPlot")
   }
 })
@@ -879,13 +880,14 @@ observe({
       layer_points(x=~Year, y=~Species, size:=200, fill="blue", opacity:=.75) %>% 
       add_tooltip(function(x)paste("Year=",x$Year,"<br/>", "Species=",x$Species), on="hover" ) %>% 
       add_axis(type="x",title="Year" ) %>%   #,format="####"
-      #scale_numeric("x", domain=c(2007,2014)) %>% 
+      #scale_numeric("x", domain=c(2007,2015)) %>% 
       add_axis(type="y",title="Species Detected") %>% 
       scale_numeric("y",domain=c(0,150) )%>% 
       hide_legend(scales="fill" ) %>% 
       add_axis("x", orient="top",ticks=0, title=PlotRichnessTitle(),  # Annoying hack for plot title
                properties=axis_props(axis=list(stroke="white"), tick=list(stroke="white"), 
                                      labels=list(fontSize=0),title=list(fontSize=24) )) %>% 
+      set_options(width="750px", resizable="TRUE") %>% 
       bind_shiny("RichnessPlot")
     }
 })
@@ -912,13 +914,14 @@ observe({
                   domain=c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")) %>% 
       add_tooltip(function(x)paste("Year=",x$Year,"<br/>", "BCI=",x$BCI, "<br/>", x[["BCI Category"]]), on="hover" ) %>% 
       add_axis(type="x",title="Year") %>% #, format="####"
-      #scale_numeric("x", domain=c(2007,2014),expand=0.008) %>% 
+      #scale_numeric("x", domain=c(2007,2015),expand=0.008) %>% 
       add_axis(type="y",title="Bird Community Index (BCI)") %>% 
       scale_numeric("y",domain=c(0,80),expand=0) %>%
       add_legend("fill") %>% 
       hide_legend("stroke") %>% 
       add_axis("x", orient="top",ticks=0, title=PlotBCITitle(),  # Annoying hack for plot title
                properties=axis_props(axis=list(stroke="white"), labels=list(fontSize=0),title=list(fontSize=24) )) %>% 
+      set_options(width="750px", resizable="TRUE") %>% 
       bind_shiny("BCIPlot")
   }
 })
