@@ -301,8 +301,8 @@ shinyServer(function(input,output,session){
                       paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeClick$id,]$Values) )
             )
         ),
-        Ecoregions=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
-        Forested=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
+        Ecoregions=, Forested=,addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
+        #Forested=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
         EBird=addPopups(map=., lat=ShapeClick$lat, lng=ShapeClick$lng, 
           popup=paste0(EBirdData()[ShapeClick$id,"locName"],"<br>", EBirdData()[ShapeClick$id,"howMany"],
                        " detected<br>",EBirdData()[ShapeClick$id,"obsDt"]))
@@ -311,7 +311,7 @@ shinyServer(function(input,output,session){
   
   ### Add additional layers
   withProgress(message="Loading ...  Please Wait",value=1,{
-    Ecoregion<-readOGR(dsn="./Maps/ecoregion.geojson","OGRGeoJSON")
+    Ecoregion<-readOGR(dsn="./Maps/Ecoregion.geojson","OGRGeoJSON")
     Forested<-readOGR(dsn="./Maps/Forests.geojson","OGRGeoJSON")
   })
   
@@ -321,12 +321,12 @@ shinyServer(function(input,output,session){
       None=clearGroup(.,group=c("Ecoregions","Forested")) %>% removeControl(.,"LayerLegend"),
           
       Ecoregions=clearGroup(.,group="Forested") %>% 
-            addPolygons(.,data=Ecoregion, group="Ecoregions",layerId=Ecoregion$Level3_Nam, stroke=FALSE, 
-                              fillOpacity=.65, color=colorFactor("RdYlBu", levels=Ecoregion$Level3_Nam)(Ecoregion$Level3_Nam)),
+            addPolygons(.,data=Ecoregion, group="Ecoregions",layerId=Ecoregion$MapClass, stroke=FALSE, 
+                            fillOpacity=.65, color=colorFactor("RdYlBu", levels=Ecoregion$MapClass)(Ecoregion$MapClass)),
     
       Forested=clearGroup(.,group="Ecoregions") %>% 
-            addPolygons(.,data=Forested, group="Forested", layerId=Forested$MapClass, stroke=FALSE, 
-                               fillOpacity=.65, color=colorFactor("Greens",levels=Forested$MapClass)(Forested$MapClass)) 
+           addPolygons(.,data=Forested, group="Forested", layerId=Forested$MapClass, stroke=FALSE, 
+                            fillOpacity=.65, color=colorFactor("Greens",levels=Forested$MapClass)(Forested$MapClass))
    )}
   })
   
@@ -336,8 +336,8 @@ shinyServer(function(input,output,session){
       {if("Legends" %in% input$MapHide) 
         switch(input$Layers,
           None=NA,
-          Ecoregions= addLegend(.,title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$Level3_Nam), 
-                                     values=Ecoregion$Level3_Nam, layerId="LayerLegend"),
+          Ecoregions= addLegend(.,title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$MapClass), 
+                                     values=Ecoregion$MapClass, layerId="LayerLegend"),
           
           Forested= addLegend(.,title="Layer Legend",pal=colorFactor("Greens",levels=Forested$MapClass), values=Forested$MapClass,
               layerId="LayerLegend")
@@ -356,7 +356,7 @@ shinyServer(function(input,output,session){
   }
   
   EBirdData<-reactive({ if(input$MapSpecies!="" & input$MapEBird ){
-    withProgress(message="DownLoading ...  Please Wait",value=1,{
+    withProgress(message="Downloading ...  Please Wait",value=1,{
       rbind(EBirdGet(EBirdName(),"DC",input$MapEBirdDays),EBirdGet(EBirdName(),"MD",input$MapEBirdDays),
             EBirdGet(EBirdName(),"VA",input$MapEBirdDays),EBirdGet(EBirdName(),"WV",input$MapEBirdDays)) %>% 
        {if(class(.)=="matrix" ) . else filter(.,!is.na(howMany))}
@@ -678,7 +678,7 @@ shinyServer(function(input,output,session){
   output$ParkTable<-DT::renderDataTable({
     datatable(
       data=ParkTableData(), caption=ParkTableCaption(), class="display compact",
-                  options=list(dom='T<"clear">t', ordering=FALSE, tableTools=list(sSwfPath=copySWF('www',pdf=TRUE),
+                  options=list(dom='T<"clear">t', ordering=FALSE, tableTools=list(sSwfPath=copySWF('.',pdf=TRUE),
                                                                         aButtons=list('copy','print','csv','pdf'))
     ), 
     selection="none")
