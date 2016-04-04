@@ -3,10 +3,10 @@ library(leaflet)
 library(ggvis)
 library(shinyjs)
 
-navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncrn/'> <img src='ah_small_black.gif',
+navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/ncrn/'> <img src='ah_small_black.gif',
                       alt='Forest Bird Visualizer'> </a> Forest Bird Visualizer</div>"),
            position = "static-top",inverse=TRUE, collapsible = FALSE, fluid=TRUE, windowTitle = "NCRN Birds",
-           theme="http://www.nps.gov/lib/bootstrap/3.3.2/css/nps-bootstrap.min.css", id="MainNavBar",
+           theme="https://www.nps.gov/lib/bootstrap/3.3.2/css/nps-bootstrap.min.css", id="MainNavBar",
           
   tabPanel(title="Map", 
     useShinyjs(),
@@ -15,7 +15,7 @@ navbarPage(title=HTML("<div> <a href='http://science.nature.nps.gov/im/units/ncr
     div(class="outer",
       tags$head(includeCSS("./www/mapstyles.css") ),# brings in  css file that lets map take up whole screen
       tags$head(HTML('<link rel="icon", href="AH_small_flat_4C_12x16.png", type="image/png" />')), #icon for broswer tab
-      tags$head(includeScript("http://www.nps.gov/common/commonspot/templates/js/federated-analytics.js")),
+      tags$head(includeScript("https://www.nps.gov/common/commonspot/templates/js/federated-analytics.js")),
       leafletOutput("BirdMap", width = "100%", height = "100%")
     ),
     

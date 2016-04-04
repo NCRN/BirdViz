@@ -108,6 +108,18 @@ shinyServer(function(input,output,session){
           <a class='improve-park-tiles' href='http://www.nps.gov/npmap/park-tiles/improve/' 
                                              target='_blank'>Improve Park Tiles</a>")
   
+  #### Add point to maps - will not appear correctly if layers are added first for some reason - new issue? ####
+    observe({
+      input$Layers
+      leafletProxy("BirdMap") %>%  
+      clearGroup("Circles") %>% 
+      addCircles(data=circleData(), layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
+            fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=as.numeric(input$PointSize), fillOpacity = 1) 
+    })
+    
+  
+  
+  
   observe({
     leafletProxy("BirdMap") %>% 
       
@@ -207,14 +219,14 @@ shinyServer(function(input,output,session){
 
 
   ### Add Map Circle
-  observe({
-    input$Layers
-    leafletProxy("BirdMap") %>%  
-    clearGroup("Circles") %>% 
-    addCircles(data=circleData(), layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
-          fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=as.numeric(input$PointSize), fillOpacity = 1) 
-  })
-  
+#   observe({
+#     input$Layers
+#     leafletProxy("BirdMap") %>%  
+#     clearGroup("Circles") %>% 
+#     addCircles(data=circleData(), layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
+#           fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=as.numeric(input$PointSize), fillOpacity = 1) 
+#   })
+#   
   ### Figure out values for Map legend
   LegendValues<-reactive({
     
@@ -677,12 +689,13 @@ shinyServer(function(input,output,session){
     
   output$ParkTable<-DT::renderDataTable({
     datatable(
-      data=ParkTableData(), caption=ParkTableCaption(), class="display compact",
+      data=ParkTableData(), caption=ParkTableCaption(), class="display compact", extensions = 'TableTools',
                   options=list(dom='T<"clear">t', ordering=FALSE, tableTools=list(sSwfPath=copySWF('.',pdf=TRUE),
                                                                         aButtons=list('copy','print','csv','pdf'))
     ), 
     selection="none")
   })
+
 
   
   ## Point Select in the table
