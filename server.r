@@ -678,9 +678,10 @@ shinyServer(function(input,output,session){
   output$PointTable<-DT::renderDataTable( 
     datatable(
       data=PointTableData(),rownames=F,caption=PointTableCaption(), 
-                  class="display compact",selection="single", extensions="TableTools", 
-                  options=list(dom = 'T<"clear">lfrtip', tableTools=list(sSwfPath=copySWF('www',pdf=TRUE),
-                  aButtons=list('copy','print','csv','pdf')))
+                  class="display compact",selection="single", #extensions="TableTools", 
+                  options=list(dom = 'T<"clear">lfrtip'
+                               #, tableTools=list(sSwfPath=copySWF('www',pdf=TRUE),aButtons=list('copy','print','csv','pdf'))
+                  )
     ),
     server=F)
     
@@ -688,9 +689,9 @@ shinyServer(function(input,output,session){
     
   output$ParkTable<-DT::renderDataTable({
     datatable(
-      data=ParkTableData(), caption=ParkTableCaption(), class="display compact", extensions = 'TableTools',
-                  options=list(dom='T<"clear">t', ordering=FALSE, tableTools=list(sSwfPath=copySWF('.',pdf=TRUE),
-                                                                        aButtons=list('copy','print','csv','pdf'))
+      data=ParkTableData(), caption=ParkTableCaption(), class="display compact", #extensions = 'TableTools',
+                  options=list(dom='T<"clear">t', ordering=FALSE
+                    #, tableTools=list(sSwfPath=copySWF('.',pdf=TRUE),aButtons=list('copy','print','csv','pdf'))
     ), 
     selection="none")
   })
