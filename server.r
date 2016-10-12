@@ -317,40 +317,43 @@ shinyServer(function(input,output,session){
       )}
   })
   
-  ### Add additional layers
-  withProgress(message="Loading ...  Please Wait",value=1,{
-    Ecoregion<-readOGR(dsn="./Maps/Ecoregion.geojson","OGRGeoJSON")
-    Forested<-readOGR(dsn="./Maps/Forests.geojson","OGRGeoJSON")
-  })
+  #### Add additional layers ####
   
-  observe({
-   leafletProxy("BirdMap") %>% {
-     switch(input$Layers,
-      None=clearGroup(.,group=c("Ecoregions","Forested")) %>% removeControl(.,"LayerLegend"),
-          
-      Ecoregions=clearGroup(.,group="Forested") %>% 
-            addPolygons(.,data=Ecoregion, group="Ecoregions",layerId=Ecoregion$MapClass, stroke=FALSE, 
-                            fillOpacity=.65, color=colorFactor("RdYlBu", levels=Ecoregion$MapClass)(Ecoregion$MapClass)),
-    
-      Forested=clearGroup(.,group="Ecoregions") %>% 
-           addPolygons(.,data=Forested, group="Forested", layerId=Forested$MapClass, stroke=FALSE, 
-                            fillOpacity=.65, color=colorFactor("Greens",levels=Forested$MapClass)(Forested$MapClass))
-   )}
-  })
+  # Stopped to speed up ap
   
-  ### Add layer legends
-  observe({
-  leafletProxy("BirdMap") %>%   removeControl(layerId="LayerLegend") %>%
-      {if("Legends" %in% input$MapHide) 
-        switch(input$Layers,
-          None=NA,
-          Ecoregions= addLegend(.,title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$MapClass), 
-                                     values=Ecoregion$MapClass, layerId="LayerLegend"),
-          
-          Forested= addLegend(.,title="Layer Legend",pal=colorFactor("Greens",levels=Forested$MapClass), values=Forested$MapClass,
-              layerId="LayerLegend")
-      )}
-  })
+  # withProgress(message="Loading ...  Please Wait",value=1,{
+  #   Ecoregion<-readOGR(dsn="./Maps/Ecoregion.geojson","OGRGeoJSON")
+  #   Forested<-readOGR(dsn="./Maps/Forests.geojson","OGRGeoJSON")
+  # })
+  # # 
+  # observe({
+  #  leafletProxy("BirdMap") %>% {
+  #    switch(input$Layers,
+  #     None=clearGroup(.,group=c("Ecoregions","Forested")) %>% removeControl(.,"LayerLegend"),
+  #         
+  #     Ecoregions=clearGroup(.,group="Forested") %>% 
+  #           addPolygons(.,data=Ecoregion, group="Ecoregions",layerId=Ecoregion$MapClass, stroke=FALSE, 
+  #                           fillOpacity=.65, color=colorFactor("RdYlBu", levels=Ecoregion$MapClass)(Ecoregion$MapClass)),
+  #   
+  #     Forested=clearGroup(.,group="Ecoregions") %>% 
+  #          addPolygons(.,data=Forested, group="Forested", layerId=Forested$MapClass, stroke=FALSE, 
+  #                           fillOpacity=.65, color=colorFactor("Greens",levels=Forested$MapClass)(Forested$MapClass))
+  #  )}
+  # })
+  
+  #### Add layer legends ####
+  # observe({
+  # leafletProxy("BirdMap") %>%   removeControl(layerId="LayerLegend") %>%
+  #     {if("Legends" %in% input$MapHide) 
+  #       switch(input$Layers,
+  #         None=NA,
+  #         Ecoregions= addLegend(.,title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$MapClass), 
+  #                                    values=Ecoregion$MapClass, layerId="LayerLegend"),
+  #         
+  #         Forested= addLegend(.,title="Layer Legend",pal=colorFactor("Greens",levels=Forested$MapClass), values=Forested$MapClass,
+  #             layerId="LayerLegend")
+  #     )}
+  # })
   
   ### Get ebird data
   EBirdName<-reactive({getBirdNames(object=NCRN[[1]], names=input$MapSpecies, in.style="AOU", out.style="Latin")})

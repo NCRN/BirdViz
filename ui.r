@@ -90,16 +90,17 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
     ),
     
     
-#     ######  Map Layer BoX
-    
-    fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="80%", bottom="auto",
-               height="auto", left="50px", width="auto",id="ExtraLayerPanel",
-               strong("Map Layers:"),
-               tags$div(title="Add additional informtaion to the parks on the map.",
-                radioButtons(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), 
-                            selected="None", inline=TRUE))
-    ),
-    
+####  Map Layer BoX ####
+    # Stoppe dto speed up ap
+
+    # fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="80%", bottom="auto",
+    #            height="auto", left="50px", width="auto",id="ExtraLayerPanel",
+    #            strong("Map Layers:"),
+    #            tags$div(title="Add additional informtaion to the parks on the map.",
+    #             radioButtons(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), 
+    #                         selected="None", inline=TRUE))
+    # ),
+    # 
     ####  Show/Hide Panel
     
     fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="90%", bottom="auto",
