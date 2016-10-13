@@ -23,17 +23,11 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
 shinyServer(function(input,output,session){
  
-  #output$Test<-renderPrint(input$GraphOutputs)
+#  output$Test<-renderPrint(BoundsUse()[1])
 
-  ##### Set up Map #############
-  
-  output$BirdMap<-renderLeaflet({leaflet() %>%
-    setView(lng=-77.8,lat=39.03,zoom=9) %>% 
-    setMaxBounds(lng1=-79.5,lng2=-76.1, lat1=37.7, lat2=40.36)
-  })
 
   
-  ###toggles
+  #### Toggles ####
   observe({
     ### Maps
     toggle( id="SpeciesControls" , condition= (input$MapValues=="individual"))
@@ -69,6 +63,15 @@ shinyServer(function(input,output,session){
     onclick(id="CloseAboutLists", expr= toggle(id="AboutListsPanel")) 
   })
   
+  
+  ##### Set up Map #############
+  
+  output$BirdMap<-renderLeaflet({
+    leaflet() %>%
+      setView(lng=-77.8,lat=39.03,zoom=9) %>% 
+      setMaxBounds(lng1=-79.5,lng2=-76.1, lat1=37.7, lat2=40.36)
+  })
+  
 
   ### Reactive Map UI Widgets
   
@@ -76,8 +79,6 @@ shinyServer(function(input,output,session){
 
   MapBandUse<-reactive({ if(input$MapBand=="All") NA else seq(as.numeric(input$MapBand)) })
   #### List of species for map - needs to be named list.
-  
-  
   
   BirdNames<-reactive({
     BN<-getChecklist(object =  NCRN,
@@ -89,46 +90,46 @@ shinyServer(function(input,output,session){
     BN [order(TempNames)]
   })
   
-
-  
-  observe({
+observe({
     BirdNames()
     isolate(
     updateSelectizeInput(session,inputId="MapSpecies",label="Species", choices=c(BirdNames()),
                          options = list(placeholder='Choose a species'),server = FALSE,
                          selected=if(!input$MapSpecies==""){input$MapSpecies})
-
     )
-    })
+})
 
-#### Make map with Base Layer and Layer Controls
+#### Make map with Base Layer and Layer Controls ####
   
   NPSAttrib<-HTML("&copy; <a href='http://mapbox.com/about/maps' target='_blank'>Mapbox</a> 
           &copy; <a href='http://openstreetmap.org/copyright' target='_blank'>OpenStreetMap</a> contributors | 
           <a class='improve-park-tiles' href='http://www.nps.gov/npmap/park-tiles/improve/' 
                                              target='_blank'>Improve Park Tiles</a>")
-  
-  #### Add point to maps - will not appear correctly if layers are added first for some reason - new issue? ####
-    observe({
-      input$Layers
-      leafletProxy("BirdMap") %>%  
-      clearGroup("Circles") %>% 
-      addCircles(data=circleData(), layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
-            fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=as.numeric(input$PointSize), fillOpacity = 1) 
-    })
-    
-  
+
+  ### Add point to maps - will not appear correctly if layers are added first for some reason - new issue? ####
   observe({
-    leafletProxy("BirdMap") %>% 
-      
-    clearTiles() %>% 
-      
-    addTiles(group="Map", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.397cfb9a,nps.3cf3d4ab,nps.b0add3e6/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q", attribution=NPSAttrib, options=tileOptions(minZoom=8)) %>% 
-    addTiles(group="Imagery",urlTemplate="//{s}.tiles.mapbox.com/v4/nps.2c589204,nps.25abf75b,nps.7531d30a/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",attribution=NPSAttrib, options=tileOptions(minZoom=8)) %>% 
+    req(circleData()$Values)
+
+    input$Layers
+
+    leafletProxy("BirdMap") %>%
+    clearGroup("Circles") %>%
+    addCircles(data=circleData(), lng=circleData()$Longitude, lat=circleData()$Latitude, layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
+          fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=as.numeric(input$PointSize), fillOpacity = 1)
+  })
+
+
+  observe({
+    leafletProxy("BirdMap") %>%
+
+    clearTiles() %>%
+
+    addTiles(group="Map", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.397cfb9a,nps.3cf3d4ab,nps.b0add3e6/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q", attribution=NPSAttrib, options=tileOptions(minZoom=8)) %>%
+    addTiles(group="Imagery",urlTemplate="//{s}.tiles.mapbox.com/v4/nps.2c589204,nps.25abf75b,nps.7531d30a/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",attribution=NPSAttrib, options=tileOptions(minZoom=8)) %>%
     addTiles(group="Slate", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.9e521899,nps.17f575d9,nps.e091bdaf/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",
-             attribution=NPSAttrib, options=tileOptions(minZoom=8) ) %>% 
-    {if("BaseLayers" %in% input$MapHide) 
-      
+             attribution=NPSAttrib, options=tileOptions(minZoom=8) ) %>%
+    {if("BaseLayers" %in% input$MapHide)
+
     addLayersControl(map=., baseGroups=c("Map","Imagery","Slate"),
                      options=layersControlOptions(collapsed=F))}
   })
@@ -144,17 +145,18 @@ shinyServer(function(input,output,session){
     selectInput(inputId="ParkZoom",label=NULL, choices=c("All Parks"="All", ParkList ) ) 
   })
    
-#   ############Zoom the map
+   ############Zoom the map
   observe({
+    req(input$Zoom)
      input$Zoom
       isolate({
-        BoundsUse<-reactive({ as.numeric(ParkBounds[ParkBounds$ParkCode==input$ParkZoom,2:5]) })
+      BoundsUse<-reactive({ as.numeric(ParkBounds[ParkBounds$ParkCode==input$ParkZoom,2:5]) })
       leafletProxy("BirdMap") %>% fitBounds(lat1=BoundsUse()[1],lng1=BoundsUse()[2],lat2=BoundsUse()[3],lng2=BoundsUse()[4])
       })
   })
+
   
-  
-  ###### Circle Data 
+  #### Circle Data####
   
   ### based on input$mapvalues, get relevant data and add it to map
   
@@ -171,6 +173,7 @@ shinyServer(function(input,output,session){
         )},
       
       individual={
+        req(MapBandUse())
         X<-CountXVisit(object=NCRN,years=input$MapYear,AOU=input$MapSpecies, band=MapBandUse() )
         switch(input$SpeciesValues,
           "Visit 1"={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit1) %>% 
@@ -196,6 +199,7 @@ shinyServer(function(input,output,session){
     switch(input$MapValues,
            richness="# of Species",
            individual={
+             req(input$MapSpecies)
               Part1<-paste0(getBirdNames(object=NCRN[[1]], names =  input$MapSpecies, in.style="AOU", 
                                          out.style = input$MapNames), "s<br>Detected")
               Part2<-paste0("<br><svg height='15' width='20'> <circle cx='10' cy='10' r='5', stroke='black' fill='black'/>
@@ -207,6 +211,7 @@ shinyServer(function(input,output,session){
   
   ### Color funciton for circles
   MapColors<-reactive({
+    req(circleData()$Values)
     switch(input$MapValues,
       richness= colorNumeric(palette=c("cyan","magenta4","orangered3"),domain=circleData()$Values),
       individual=, bci=  colorFactor(palette=c("cyan","magenta4","orangered3","yellow"), domain=0:8)
@@ -233,16 +238,16 @@ shinyServer(function(input,output,session){
     }
   })
   
-  ### Add Legend
- observe({ 
-    leafletProxy("BirdMap") %>% 
-     removeControl(layerId="CircleLegend") %>% 
-     {if("Legends" %in% input$MapHide) 
-        addLegend(map=., layerId="CircleLegend",pal=MapColors(), 
+ ## Add Legend
+ observe({
+    leafletProxy("BirdMap") %>%
+     removeControl(layerId="CircleLegend") %>%
+     {if("Legends" %in% input$MapHide)
+        addLegend(map=., layerId="CircleLegend",pal=MapColors(),
               values=LegendValues(),opacity=1,
              na.label="Not Visited", title=circleLegend(), className="panel panel-default info legend" )}
   })
-  
+
  ### User Clicks on map not on a shape - popups close
 
  observeEvent(input$BirdMap_click, {
@@ -278,7 +283,7 @@ shinyServer(function(input,output,session){
        )}
  })
  
-## remove mouser voer popups when the mouse leaves
+## remove mouse over popups when the mouse leaves
  observeEvent(input$BirdMap_shape_mouseout,{
    Sys.sleep(0.1)
    leafletProxy("BirdMap") %>% removePopup(layerId="MouseOverPopup")

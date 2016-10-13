@@ -19,7 +19,7 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
       leafletOutput("BirdMap", width = "100%", height = "100%")
     ),
     
-     ################ Map Controls Box
+     #### Map Controls Box ####
     
     fixedPanel(class="panel panel-default controls", draggable = TRUE, cursor="auto", top="80px", bottom="auto",
                 height="auto", right="180px", left="auto", width="250px", id="MapControlPanel",
@@ -61,7 +61,7 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
       actionButton(inputId="AboutMap", class="btn btn-primary", label="About the map...")
     ),
    
-    ##### About the Map panel
+    ##### About the Map panel ####
     hidden(
     fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
                left=450,width="500",id="AboutMapPanel",style="padding: 0px",
