@@ -2,7 +2,7 @@ input[type="number"] {
   max-width: 80%;
 }
 
-.outer {
+/*.outer {
   position: fixed;
   top: 65px;
   left: 0;
@@ -10,7 +10,7 @@ input[type="number"] {
   bottom: 0;
   overflow: hidden;
   padding: 0;
-}
+}*/
 
 /* Customize fonts */
 body, label, input, button, select { 
@@ -29,7 +29,7 @@ hr {margin: 5px;}
 
 .controls {                           
   background-color: white;
-  padding: 0 20px 5px 20px;
+  padding: 0 10px 5px 10px;
   cursor: move;                        
 }                                    
 
@@ -55,7 +55,7 @@ padding: 0 0 0 0;
 }
 
 
-.modal-backdrop.fade.in{
+.modal-backdrop .fade .in{
   opacity: 0.05
 }
 
@@ -80,11 +80,14 @@ padding: 0 0 0 0;
 }
 
 .navbar .container {
-  margin-left: 0px;
+  margin-left: 0;
   height: 70px;
 }
 
 .navbar {
- margin-bottom: 0px;
+ margin-bottom: 0;
 }
 
+.tab-content {
+  padding: 0 10px;
+}

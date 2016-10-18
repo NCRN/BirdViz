@@ -32,9 +32,6 @@ shinyServer(function(input,output,session){
     ### Maps
     toggle( id="SpeciesControls" , condition= (input$MapValues=="individual"))
     toggleState( id='SpeciesValues', condition=( input$MapSpecies!=""))
-    toggle(id="MapControlPanel", condition=("MapControls" %in% input$MapHide))
-    toggle(id="ZoomPanel", condition=("Zoom" %in% input$MapHide))
-    toggle(id="ExtraLayerPanel", condition=("ExtraLayers" %in% input$MapHide))
     toggle(id="EBirdTitle", condition=(input$MapValues=="individual"))
     toggle(id="MapEBird", condition = (input$MapValues=="individual"))
     toggle(id="MapEBirdDays", condition =(input$MapEBird & input$MapValues=="individual")) 
@@ -43,7 +40,6 @@ shinyServer(function(input,output,session){
     
     ### Tables
     toggle(id="TableSpecies", condition=input$TableValues %in% c("individual","detects"))
-    #toggle(id="TableBand", condition=input$TableValues == "individual")
     toggle(id="TableNames", condition=input$TableValues%in% c("individual","detects"))
     toggle(id="TableYear", condition=input$TableValues %in% c("richness","bci") )
     toggle(id="TableYear2", condition=input$TableValues %in% c("individual") )
@@ -64,7 +60,7 @@ shinyServer(function(input,output,session){
   })
   
   
-  ##### Set up Map #############
+  ##### Set up Map ####
   
   output$BirdMap<-renderLeaflet({
     leaflet() %>%
@@ -73,13 +69,13 @@ shinyServer(function(input,output,session){
   })
   
 
-  ### Reactive Map UI Widgets
+  #### Reactive Map UI Widgets ####
   
-  #### Band to use for map
+  ## Band to use for map
 
   MapBandUse<-reactive({ if(input$MapBand=="All") NA else seq(as.numeric(input$MapBand)) })
-  #### List of species for map - needs to be named list.
   
+  ## List of species for map - needs to be named list.
   BirdNames<-reactive({
     BN<-getChecklist(object =  NCRN,
                      #years=input$MapYear,
@@ -106,7 +102,7 @@ observe({
           <a class='improve-park-tiles' href='http://www.nps.gov/npmap/park-tiles/improve/' 
                                              target='_blank'>Improve Park Tiles</a>")
 
-  ### Add point to maps - will not appear correctly if layers are added first for some reason - new issue? ####
+ #### Add point to maps - will not appear correctly if layers are added first for some reason - new issue? ####
   observe({
     req(circleData()$Values)
 
@@ -128,24 +124,16 @@ observe({
     addTiles(group="Imagery",urlTemplate="//{s}.tiles.mapbox.com/v4/nps.2c589204,nps.25abf75b,nps.7531d30a/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",attribution=NPSAttrib, options=tileOptions(minZoom=8)) %>%
     addTiles(group="Slate", urlTemplate="//{s}.tiles.mapbox.com/v4/nps.9e521899,nps.17f575d9,nps.e091bdaf/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q",
              attribution=NPSAttrib, options=tileOptions(minZoom=8) ) %>%
-    {if("BaseLayers" %in% input$MapHide)
 
-    addLayersControl(map=., baseGroups=c("Map","Imagery","Slate"),
-                     options=layersControlOptions(collapsed=F))}
-  })
-
-  ### Hide Layers Control
-  observe({
-    if(!"BaseLayers" %in% input$MapHide ) leafletProxy("BirdMap") %>% removeLayersControl()
-  })
+    addLayersControl(map=., baseGroups=c("Map","Imagery","Slate"), options=layersControlOptions(collapsed=T))
+})
   
-  
-#   #### Zoom Control for Map
+#### Zoom Control for Map ####
   output$ParkZoomControl<-renderUI({
     selectInput(inputId="ParkZoom",label=NULL, choices=c("All Parks"="All", ParkList ) ) 
   })
    
-   ############Zoom the map
+#### Zoom the map ####
   observe({
     req(input$Zoom)
      input$Zoom
@@ -156,7 +144,7 @@ observe({
   })
 
   
-  #### Circle Data####
+#### Circle Data ####
   
   ### based on input$mapvalues, get relevant data and add it to map
   
@@ -194,7 +182,7 @@ observe({
     )
   })
   
-  #### Circle Legends
+#### Circle Legends ####
   circleLegend<-reactive({
     switch(input$MapValues,
            richness="# of Species",
@@ -209,7 +197,7 @@ observe({
            bci="Bird Community Index")
   })
   
-  ### Color funciton for circles
+#### Color funciton for circles ####
   MapColors<-reactive({
     req(circleData()$Values)
     switch(input$MapValues,
@@ -219,16 +207,8 @@ observe({
   })  
 
 
-  ### Add Map Circle
-#   observe({
-#     input$Layers
-#     leafletProxy("BirdMap") %>%  
-#     clearGroup("Circles") %>% 
-#     addCircles(data=circleData(), layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
-#           fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=as.numeric(input$PointSize), fillOpacity = 1) 
-#   })
-#   
-  ### Figure out values for Map legend
+   
+#### Figure out values for Map legend ####
   LegendValues<-reactive({
     
     if(!input$MapEBird) unique(circleData()$Values) else{
@@ -238,17 +218,16 @@ observe({
     }
   })
   
- ## Add Legend
+ #### Add Legend ####
  observe({
     leafletProxy("BirdMap") %>%
      removeControl(layerId="CircleLegend") %>%
-     {if("Legends" %in% input$MapHide)
         addLegend(map=., layerId="CircleLegend",pal=MapColors(),
               values=LegendValues(),opacity=1,
-             na.label="Not Visited", title=circleLegend(), className="panel panel-default info legend" )}
+             na.label="Not Visited", title=circleLegend(), className="panel panel-default info legend" )
   })
 
- ### User Clicks on map not on a shape - popups close
+ #### User Clicks on map not on a shape - popups close ####
 
  observeEvent(input$BirdMap_click, {
    leafletProxy("BirdMap") %>% 
@@ -257,7 +236,7 @@ observe({
   
   
  
- ## Popup for user hoverin on a circle
+#### Popup for user hoverin on a circle ####
  observeEvent(input$BirdMap_shape_mouseover, {  
    
    ShapeOver<-input$BirdMap_shape_mouseover
@@ -283,13 +262,13 @@ observe({
        )}
  })
  
-## remove mouse over popups when the mouse leaves
+#### remove mouse over popups when the mouse leaves ####
  observeEvent(input$BirdMap_shape_mouseout,{
    Sys.sleep(0.1)
    leafletProxy("BirdMap") %>% removePopup(layerId="MouseOverPopup")
  })
  
-  ## Popup for user clicking on a shape
+#### Popup for user clicking on a shape ####
   observeEvent(input$BirdMap_shape_click, {  
     
     ShapeClick<-input$BirdMap_shape_click
@@ -323,44 +302,42 @@ observe({
   })
   
   #### Add additional layers ####
-  
-  # Stopped to speed up ap
-  
-  # withProgress(message="Loading ...  Please Wait",value=1,{
-  #   Ecoregion<-readOGR(dsn="./Maps/Ecoregion.geojson","OGRGeoJSON")
-  #   Forested<-readOGR(dsn="./Maps/Forests.geojson","OGRGeoJSON")
-  # })
-  # # 
-  # observe({
-  #  leafletProxy("BirdMap") %>% {
-  #    switch(input$Layers,
-  #     None=clearGroup(.,group=c("Ecoregions","Forested")) %>% removeControl(.,"LayerLegend"),
-  #         
-  #     Ecoregions=clearGroup(.,group="Forested") %>% 
-  #           addPolygons(.,data=Ecoregion, group="Ecoregions",layerId=Ecoregion$MapClass, stroke=FALSE, 
-  #                           fillOpacity=.65, color=colorFactor("RdYlBu", levels=Ecoregion$MapClass)(Ecoregion$MapClass)),
-  #   
-  #     Forested=clearGroup(.,group="Ecoregions") %>% 
-  #          addPolygons(.,data=Forested, group="Forested", layerId=Forested$MapClass, stroke=FALSE, 
-  #                           fillOpacity=.65, color=colorFactor("Greens",levels=Forested$MapClass)(Forested$MapClass))
-  #  )}
-  # })
-  
+
+
+  withProgress(message="Loading ...  Please Wait",value=1,{
+    Ecoregion<-readOGR(dsn="./Maps/Ecoregion.geojson","OGRGeoJSON")
+    Forested<-readOGR(dsn="./Maps/Forests.geojson","OGRGeoJSON")
+  })
+ 
+  observe({
+   leafletProxy("BirdMap") %>% {
+     switch(input$Layers,
+      None=clearGroup(.,group=c("Ecoregions","Forested")) %>% removeControl(.,"LayerLegend"),
+ 
+      Ecoregions=clearGroup(.,group="Forested") %>%
+            addPolygons(.,data=Ecoregion, group="Ecoregions",layerId=Ecoregion$MapClass, stroke=FALSE,
+                            fillOpacity=.65, color=colorFactor("RdYlBu", levels=Ecoregion$MapClass)(Ecoregion$MapClass)),
+ 
+      Forested=clearGroup(.,group="Ecoregions") %>%
+           addPolygons(.,data=Forested, group="Forested", layerId=Forested$MapClass, stroke=FALSE,
+                            fillOpacity=.65, color=colorFactor("Greens",levels=Forested$MapClass)(Forested$MapClass))
+   )}
+  })
+
   #### Add layer legends ####
-  # observe({
-  # leafletProxy("BirdMap") %>%   removeControl(layerId="LayerLegend") %>%
-  #     {if("Legends" %in% input$MapHide) 
-  #       switch(input$Layers,
-  #         None=NA,
-  #         Ecoregions= addLegend(.,title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$MapClass), 
-  #                                    values=Ecoregion$MapClass, layerId="LayerLegend"),
-  #         
-  #         Forested= addLegend(.,title="Layer Legend",pal=colorFactor("Greens",levels=Forested$MapClass), values=Forested$MapClass,
-  #             layerId="LayerLegend")
-  #     )}
-  # })
-  
-  ### Get ebird data
+  observe({
+  leafletProxy("BirdMap") %>%   
+    removeControl(layerId="LayerLegend") %>%
+    {switch(input$Layers,
+      None=NA,
+      Ecoregions= addLegend(.,title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$MapClass),
+                                     values=Ecoregion$MapClass, layerId="LayerLegend"),
+      Forested= addLegend(.,title="Layer Legend",pal=colorFactor("Greens",levels=Forested$MapClass), values=Forested$MapClass,
+              layerId="LayerLegend")
+      )}
+  })
+
+  #### Get ebird data ####
   EBirdName<-reactive({getBirdNames(object=NCRN[[1]], names=input$MapSpecies, in.style="AOU", out.style="Latin")})
 
   EBirdGet<-function(Species,State,Days){           ### Get data from EBird
@@ -380,7 +357,7 @@ observe({
   }})
  
 
-  ### add EBird cicles
+  #### add EBird cicles ####
   observe({ 
     if(input$MapSpecies!="" & input$MapEBird & class(EBirdData() )=="data.frame" & input$MapValues=="individual"){
       leafletProxy("BirdMap") %>%  
@@ -394,9 +371,9 @@ observe({
   #########################################  Data Table Functions  ########################################################
 
   
-  ##### Render Controls for Tables and figure out user inputs
+  #### Render Controls for Tables and figure out user inputs ####
   
-  # Make Park Control and decide which park is requested
+  #### Make Park Control and decide which park is requested ####
   output$ParkTableSelect<-renderUI({
     selectizeInput(inputId="ParkTable",label="Park", choices=c("All Parks"="All", ParkList ), selected="All" ) 
   })
@@ -404,7 +381,7 @@ observe({
   
   TableParkUse<-reactive({ if (input$ParkTable=="All") NCRN else NCRN[input$ParkTable] })  
   
-  ## Make bird species control and figure out name for Captions and Titles
+  #### Make bird species control and figure out name for Captions and Titles ####
   BirdTableNames<-reactive({
     validate(
       need(input$ParkTable, "Working...")
@@ -421,12 +398,12 @@ observe({
   })
 
   
-  ## Bird name to use for titles and captions
+  #### Bird name to use for titles and captions ####
   BirdName<-reactive(getBirdNames(object=NCRN[[1]], names =  input$TableSpecies, 
                                   in.style="AOU", out.style = input$TableNames))
   
   
-  ## Band to display in titles and captions
+  #### Band to display in titles and captions ####
   
   BandOut<-reactive({
     switch(input$TableBand,
@@ -436,9 +413,9 @@ observe({
   })
   
   
-  ################## Data, Captons, Titles, for the Tables
+#### Data, Captons, Titles, for the Tables ####
   
-  ### Individual tables, titles, captions, basedata used to calculate other tables
+  #### Individual tables, titles, captions, basedata used to calculate other tables ####
   
   IndividualBase<-reactive({
     CountXVisit(object=NCRN,
@@ -479,53 +456,9 @@ observe({
   IndividualParkCaption<-reactive({paste0("Mean number of ",BirdName(),"s detected per monitoring point in each park from ",
                     input$TableYear2[1]," to ", input$TableYear2[2],". This is the number of birds detected during a visit divided by the number of monitoring points visited. This table includes birds found at ",BandOut()," from the observer.") })
        
-  ####  Detects tables, titles, captions, basedata used to calculate other tables
+
   
-#   DetectsBase<-reactive({
-#     CountXVisit(object=NCRN,
-#                 years=2007:2015, 
-#                 band= NA, 
-#                 AOU=input$TableSpecies)
-#   })
-#   
-#   DetectsPoint<-reactive({
-#     DetectsBase() %>% 
-#     {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>% 
-#       filter(Visit1 >0 | Visit2 >0) %>% 
-#       {if (nrow(.)==0 ) stop() else .} %>%
-#       rename("Visit 1"= Visit1, "Visit 2"=Visit2) %>% 
-#       mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name) ) %>% 
-#       dplyr::select(Park, `Point Name`, Year, `Visit 1`,`Visit 2`)
-#   })
-#   
-#   DetectsPark<-reactive({
-#     DetectsBase() %>%
-#       group_by(Admin_Unit_Code) %>% 
-#       summarize("Points where Found"=sum((!is.na(Visit1) &Visit1 > 0) |(!is.na(Visit2) &Visit2>0)),
-#                 "Total Points Monitored"=n()) %>%
-#       mutate("Percent"=paste0(round(100*(`Points where Found`/`Total Points Monitored`)),"%"))  %>%  
-#       dplyr::select(.,`Points where Found`,`Total Points Monitored`,`Percent`) %>% 
-#       rbind(c(DetectsBase() %>% 
-#                 summarize( "Points where Found"=sum((!is.na(Visit1) &Visit1 > 0) |(!is.na(Visit2) &Visit2>0)),
-#                            "Total Points Monitored"=n()) %>% 
-#                 mutate("Percent"=paste0(round(100*(`Points where Found`/`Total Points Monitored`)),"%"))
-#       )) %>% 
-#       t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks"))
-#   })
-#   
-#   DetectsPointTitle<-reactive({paste(BirdName(),"Detections" )})
-#   
-#   DetectsPointCaption<-reactive({  paste0('Detections of ',BirdName(),'s across all distances and years. Each row indicates a monitoring point and year where ',BirdName(),'s were detected during at least one visit. If there were no detections of ', BirdName(),'s at a point during a given year, that point and year combination are not included in this table. For instances when a bird was not detected, choose the "Individual Species - All data from 1 year" table instead.')
-#   })
-#   
-#   DetectsParkTitle<-reactive({paste("Number of Points with", getBirdNames(object=NCRN[[1]], names =  input$TableSpecies, 
-#                                                       in.style="AOU", out.style = input$TableNames), " - All Years")})
-#   
-#   DetctsParkCaption<-reactive({paste0('"Points where Found" is the number of plots with ',BirdName(),'s detected duing at least one visit in a given year. Each year is treated seprately, so if a bird appears in a plot during 3 different years it will be counted three times. "Total Points Monitored" is the number of points monitored in park, added up over all years.' )})
-#   
-#   
-  
-  ####  Richness tables, titles, captions
+  ####  Richness tables, titles, captions ####
 
   RichnessPoint<-reactive({
     withProgress(message="Calculating...  Please Wait",value=1,{
@@ -537,8 +470,6 @@ observe({
         mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code])), 
                 "Point Name"=factor(Point_Name),
                 Year=input$TableYear) %>% 
-        #rowwise() %>% 
-        #mutate(Year=               years=input$TableYear)$Year), collapse="-")) %>% 
         dplyr::select(Park,`Point Name`, Year, Species )
       })
   })
@@ -564,7 +495,7 @@ observe({
   RichnessParkCaption<-reactive({paste0("Number of species detected in the parks in ",input$TableYear," based on detections at ", BandOut()," from the observer. Parks differ in the number of monitoring points and points differ in the number of years they have been visited, so differences between parks and years may be partially due to differences in sampling.") })
   
   
-  ####  BCI tables, titles, captions, basedata used to calculate other tables  #####################################
+  ####  BCI tables, titles, captions, basedata used to calculate other tables  ####
   
   BCIBase<-reactive({
     withProgress(message="Calculating...  Please Wait",value=1,{
@@ -600,7 +531,7 @@ observe({
   
   BCIParkCaption<-reactive({  paste0("The Bird Comminity Index (BCI) for each park during.", input$TableYear," based on deteections at ", BandOut()," from the observer. The BCI  is an index of ecological integrity (O'Connell et al., 1998, 2000). Each park s assinged a BCI score by averaging point scores, which in turn are based on the species of birds found. Scores are then assigned to one of four BCI categories: Low, Medium. High or Highest Integrity.")})
   
-############# Create Tables and Title ouputs
+####Create Tables and Title outputs ####
   
 ### Point Table title:
   
@@ -703,10 +634,10 @@ observe({
 
 
   
-  ## Point Select in the table
+  #### Point Select in the table ####
 
   
-  ### refocus the map on click and make popup
+  #### refocus the map on click and make popup ####
   observeEvent(
     input$PointTable_rows_selected,{
       RowSelect<-input$PointTable_rows_selected #shorter name for convience
@@ -715,7 +646,7 @@ observe({
       group_by(Point_Name) %>% 
       filter(Point_Name==as.character(PointTableData()[[RowSelect,"Point Name"]]))
      
-    ### Map Selection updates
+    #### Map Selection updates ####
       leafletProxy("BirdMap") %>% setView(lng=PointSelected$Longitude,lat=PointSelected$Latitude,zoom=14)
       updateNavbarPage(session,inputId="MainNavBar", selected = "Map")
       
@@ -736,10 +667,10 @@ observe({
                   selected=ifelse(input$TableValues %in% c("individual","detects"), input$TableSpecies, input$MapSpecies))
       
       
-      ### move to map
+      #### move to map ####
    
       
-      ### Make popup
+      #### Make popup ####
       leafletProxy("BirdMap") %>% clearPopups() %>% 
         addPopups(
           map=.,lat=PointSelected$Latitude, lng=PointSelected$Longitude, 
@@ -763,9 +694,9 @@ observe({
   
 
   
-  #############################  Graphs Tab
+####  Graphs Tab ####
   
-  #   #### Park control for graphs
+     #### Park control for graphs ####
   output$ParkPlotSelect<-renderUI({
     selectizeInput(inputId="ParkPlot",label="Park:", choices=c("All Parks"="All", ParkList), selected="All" ) 
   })
@@ -841,7 +772,7 @@ observe({
     })
   })
 
-  ## Bird name to use for titles and captions
+  #### Bird name to use for titles and captions ####
   PlotBirdName<-reactive(getBirdNames(object=NCRN[[1]], names =  input$PlotSpecies, 
                                   in.style="AOU", out.style = input$PlotNames))
   PlotParkName<-reactive(if (input$ParkPlot=="All") "All NCRN Parks" else getParkNames(PlotParkUse(),"short" ))
@@ -954,11 +885,11 @@ output$BCICaption<-renderText({
 PlotBCICaption()
   }) 
 
-####################################
-### Species Lists ##################
+
+#### Species Lists ####
 
 
-#   #### Park control for species list
+#### Park control for species list ####
 output$ParkListSelect<-renderUI({
   selectizeInput(inputId="ParkList",label="Park", choices=ParkList ) 
 })
@@ -982,7 +913,7 @@ ListPoints<-reactive({
 })
 
 
-### Get species lists from IRMA / NPSpecies
+#### Get species lists from IRMA / NPSpecies ####
 
 NPSpeciesURL<-reactive({
   validate(

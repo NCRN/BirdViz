@@ -8,39 +8,43 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
            position = "static-top",inverse=TRUE, collapsible = FALSE, fluid=TRUE, windowTitle = "NCRN Birds",
            theme="https://www.nps.gov/lib/bootstrap/3.3.2/css/nps-bootstrap.min.css", id="MainNavBar",
           
-  tabPanel(title="Map", 
+  tabPanel(title="Map", style="padding: 0",
     useShinyjs(),
-    #includeScript("http://www.nps.gov/lib/bootstrap/3.3.2/js/nps-bootstrap.min.js"),
     
     div(class="outer",
       tags$head(includeCSS("./www/mapstyles.css") ),# brings in  css file that lets map take up whole screen
       tags$head(HTML('<link rel="icon", href="AH_small_flat_4C_12x16.png", type="image/png" />')), #icon for broswer tab
-      tags$head(includeScript("https://www.nps.gov/common/commonspot/templates/js/federated-analytics.js")),
-      leafletOutput("BirdMap", width = "100%", height = "100%")
+      tags$head(includeScript("https://www.nps.gov/common/commonspot/templates/js/federated-analytics.js"))
+      
     ),
+    
+    
+    fluidRow(
+      column(2, style="padding: 0 0 0 10px",
+      
     
      #### Map Controls Box ####
     
-    fixedPanel(class="panel panel-default controls", draggable = TRUE, cursor="auto", top="80px", bottom="auto",
-                height="auto", right="180px", left="auto", width="250px", id="MapControlPanel",
+    div( id="MapControlPanel", class="panel panel-default controls", 
       
       h4("Map Controls",class="panel-heading"),
       
       #textOutput("Test"),
 
       tags$div(title="Choose the type of data you wish to see",
-        radioButtons(inputId="MapValues", label="Data to Map", choices=c("Individual Species"="individual",
-                                      "Number of Species"="richness", "Bird Community Index (BCI)"="bci"),inline=F
-      )),
-      
+        selectizeInput(inputId="MapValues", label="Data to Map", choices=c("Individual Species"="individual",
+                                      "Number of Species"="richness", "Bird Community Index (BCI)"="bci"))
+      ),
+    
       tags$div(title="Include birds at what distance from the observer?",
-        radioButtons(inputId="MapBand", label="Distance from Observer:",
-         choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))),
+        selectizeInput(inputId="MapBand", label="Distance from Observer:",
+         choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))
+      ),
       
       div(id="SpeciesControls",
-      tags$div(title="Species to display on map",
+        tags$div(title="Species to display on map",
                selectizeInput(inputId="MapSpecies",choices=NULL,label="Species")), #updated in server.r
-      tags$div(title="Display bird observations from Vist 1, Visit 2, or the maixmum of the two ",
+        tags$div(title="Display bird observations from Vist 1, Visit 2, or the maixmum of the two ",
                selectizeInput(inputId="SpeciesValues", label="Visit", choices=c("Maximum Observed", "Visit 1", "Visit 2")))
       ),
       
@@ -53,68 +57,54 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
       h4("eBird Data",class="panel-heading", id="EBirdTitle"),
       tags$div(title="Display citizen science from ebird (non-NPS data)",
         checkboxInput(inputId="MapEBird", label="Show recent eBird Data?")),
-      #hidden(
-        tags$div(title="# of days worth of data to display",
+      
+      tags$div(title="# of days worth of data to display",
       sliderInput(inputId="MapEBirdDays", label= "Display data from how many days prior to today?",min=1,max=30,sep="",value=14 )),
-      #),
       hr(),
-      actionButton(inputId="AboutMap", class="btn btn-primary", label="About the map...")
+      actionButton(inputId="AboutMap", class="btn btn-primary", label="About the map...")),
+    
+    #### Zoom Box ####
+    div(class="panel panel-default controls",id="ZoomPanel",
+               h4("Zoom to",class="panel-heading"),
+               fluidRow(
+                 column(9,tags$div(title="Choose a park and click 'Go'", uiOutput("ParkZoomControl"))),
+                 column(3,tags$div(title="Choose a park and click 'Go'",
+                                   actionButton(class="btn btn-primary btn-sm", inputId="Zoom", label="Go"))) 
+               ),
+               hr(),
+               tags$div(title="Increases size of plots for easier viewing",
+                        radioButtons(inputId="PointSize", label="Point size:", 
+                                     choices=c("50m radius"=50, "100m radius"=100), selected="50", inline=TRUE)
+               )
     ),
-   
-    ##### About the Map panel ####
-    hidden(
+    ####  Map Layer BoX ####
+    div(class="panel panel-default controls",id="ExtraLayerPanel",
+               h4("Additional Layers", class="panel-heading"),
+               tags$div(title="Add additional informtaion to the parks on the map.",
+                        selectizeInput(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), 
+                                     selected="None"))
+    )
+    ), #End code for column on left
+  
+    column(10, style="padding: 0",
+         div(leafletOutput("BirdMap",width = "100%", height = "1000px"))
+    )
+  
+  ),#end of fluidRow
+  
+  ##### About the Map panel ####
+  hidden(
     fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
                left=450,width="500",id="AboutMapPanel",style="padding: 0px",
                div(class="panel-heading", h4("About the Map" )),
                div(class="panel-body",style="height: 400px;  overflow-y: scroll",
-                  includeHTML("./www/AboutMap.html")),
+                   includeHTML("./www/AboutMap.html")),
                div(class="panel-footer", 
                    actionButton(inputId="CloseAboutMap",class="btn btn-primary",label="Close"))  )
-    ),
+  )
+),  #end of Map tab
 
-    ###### Zoom Box 
-    fixedPanel(class="panel panel-default controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="auto",
-                  left=50,width=250,id="ZoomPanel",
-      h4("Display",class="panel-heading"),
-      h5("Zoom to:"),
-      fluidRow(
-        column(9,tags$div(title="Choose a park and click 'Go'", uiOutput("ParkZoomControl"))),
-        column(3,tags$div(title="Choose a park and click 'Go'",
-            actionButton(class="btn btn-primary btn-sm", inputId="Zoom", label="Go"))) 
-        ),
-      hr(),
-      tags$div(title="Increases size of plots for easier viewing",
-        radioButtons(inputId="PointSize", label="Point size:", 
-          choices=c("50m radius"=50, "100m radius"=100), selected="50", inline=TRUE)
-      )
-    ),
-    
-    
-####  Map Layer BoX ####
-    # Stoppe dto speed up ap
-
-    # fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="80%", bottom="auto",
-    #            height="auto", left="50px", width="auto",id="ExtraLayerPanel",
-    #            strong("Map Layers:"),
-    #            tags$div(title="Add additional informtaion to the parks on the map.",
-    #             radioButtons(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), 
-    #                         selected="None", inline=TRUE))
-    # ),
-    # 
-    ####  Show/Hide Panel
-    
-    fixedPanel(class="panel panel-default controls", draggable=TRUE, cursor="auto", top="90%", bottom="auto",
-         height="auto", left="50px", width="auto",
-      tags$div(title="You can hide controls that you are not using.",
-          checkboxGroupInput(inputId="MapHide", label=strong("Show:"),inline=TRUE,
-            choices=c("Zoom", "Map Controls"="MapControls", "Legends","Base Layers"="BaseLayers", "Map Layers"="ExtraLayers"),
-            selected=c("MapControls","Legends","Zoom","BaseLayers","ExtraLayers"))
-      )
-    )
-    
-  ),  #end of Map tab
-
-###############################  Tables Tab
+####  Tables Tab ####
   tabPanel("Data Tables",
     column(3,
       wellPanel(
@@ -124,9 +114,7 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
        
         tags$div(title="Select the type of data you are interested in.",
           radioButtons(inputId="TableValues", label="Type of Data", 
-            choices=c("Individual Species"="individual",
-                      #"Individual Species - All detections"="detects", 
-                    "Number of Species"="richness", "Bird Community Index (BCI)"="bci"), inline=F)
+            choices=c("Individual Species"="individual","Number of Species"="richness", "Bird Community Index (BCI)"="bci"), inline=F)
         ),
         tags$div(title="Select a park.",uiOutput("ParkTableSelect"))
       ),
@@ -172,7 +160,7 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
       h3("Click on any row to see that location on the map.")
     ),
     
-    ##### About the tables panel
+    ##### About the tables panel ####
     hidden(
       fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
                  left=475,width="500",id="AboutTablesPanel",style="padding: 0px",
@@ -184,7 +172,7 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
     )
   ),  # end Tables Tab
   
-###   Graphs Tab
+####   Graphs Tab ####
   tabPanel("Graphs",
     column(3,
       wellPanel(
@@ -231,7 +219,7 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
     
   ), # end graphs tab
 
-### Species List Tab
+#### Species List Tab ####
   tabPanel("Species Lists",
     column(3,
       wellPanel(
@@ -256,6 +244,7 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
                      actionButton(inputId="CloseAboutLists",class="btn btn-primary",label="Close"))  )
     )
   ),  # end Species List tab
+
   navbarMenu(title="About the Project",
     tabPanel("Project Information",
              includeHTML("./www/ProjectInfo.html")
