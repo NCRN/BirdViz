@@ -161,7 +161,7 @@ observe({
         )},
       
       individual={
-        req(MapBandUse())
+        req(MapBandUse() | is.na(MapBandUse()) ) # needed as NA indicates "any distace" here.
         X<-CountXVisit(object=NCRN,years=input$MapYear,AOU=input$MapSpecies, band=MapBandUse() )
         switch(input$SpeciesValues,
           "Visit 1"={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit1) %>% 
