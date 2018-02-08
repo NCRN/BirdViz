@@ -202,7 +202,10 @@ observe({
     req(circleData()$Values)
     switch(input$MapValues,
       richness= colorNumeric(palette=c("cyan","magenta4","orangered3"),domain=circleData()$Values),
-      individual=, bci=  colorFactor(palette=c("cyan","magenta4","orangered3","yellow"), domain=0:8)
+      individual=colorFactor(palette=c("cyan","magenta4","orangered3","yellow"), domain=0:8),
+      bci=colorFactor(palette=
+                      c("cyan","magenta4","orangered3","yellow"), 
+                        domain=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))
     )
   })  
 
@@ -289,7 +292,7 @@ observe({
                 paste(ShapeClick$id,"<br/>"),
                 paste(circleData()[circleData()$Point_Name==ShapeClick$id,]$Values,"detected", collapse=" ")),
                 
-            bci=paste(sep="<br/>", ShapeClick$id, paste0('BCI Value: ',circleData()[circleData()$Point_Name==ShapeClick$id,]$ CI),
+            bci=paste(sep="<br/>", ShapeClick$id, paste0('BCI Value: ',circleData()[circleData()$Point_Name==ShapeClick$id,]$BCI),
                       paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeClick$id,]$Values) )
             )
         ),
@@ -305,8 +308,8 @@ observe({
 
 
   withProgress(message="Loading ...  Please Wait",value=1,{
-    Ecoregion<-readOGR(dsn="./Maps/Ecoregion.geojson","OGRGeoJSON")
-    Forested<-readOGR(dsn="./Maps/Forests.geojson","OGRGeoJSON")
+    Ecoregion<-readOGR(dsn="./Maps/Ecoregion.geojson",encoding="OGRGeoJSON")
+    Forested<-readOGR(dsn="./Maps/Forests.geojson",encoding="OGRGeoJSON")
   })
  
   observe({
@@ -733,8 +736,8 @@ observe({
                band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)), 
                AOU=input$PlotSpecies) %>% 
     { if (input$ParkPlot=="All") . else filter(.,Admin_Unit_Code==input$ParkPlot)} %>% 
-        mutate(Year=factor(Year,labels=paste(paste(c(2007:2016), paste0("(",
-                          sapply(X=2007:2016,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) %>% 
+        mutate(Year=factor(Year,labels=paste(paste(c(2007:2017), paste0("(",
+                          sapply(X=2007:2017,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) %>% 
     group_by(Year) %>% 
 
     summarize("Visit 1"=round(mean(Visit1, na.rm=T),digits=2), "Visit 2"= round( mean(Visit2, na.rm=T),digits=2)) %>% 
@@ -746,19 +749,19 @@ observe({
       
   RichnessPlotData<-reactive({
     if(!is.null(input$ParkPlot)){
-    tbl_df(data.frame(Year=2007:2016)) %>% 
+    tbl_df(data.frame(Year=2007:2017)) %>% 
     group_by(Year) %>% 
     mutate(Species=birdRichness(object=PlotParkUse(), years=Year,
                           band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand))) ) %>% 
     ungroup() %>% 
-    mutate(Year=factor(Year,labels=paste(paste(c(2007:2016), paste0("(",
-          sapply(X=2007:2016,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) 
+    mutate(Year=factor(Year,labels=paste(paste(c(2007:2017), paste0("(",
+          sapply(X=2007:2017,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) 
     }
   })  
   
   BCIPlotData<-reactive({
     withProgress(message="Calculating...  Please Wait",value=1,{
-        tbl_df(data.frame(Year=2007:2016)) %>% 
+        tbl_df(data.frame(Year=2007:2017)) %>% 
         group_by(Year) %>% 
         mutate(BCI=BCI(object=PlotParkUse(), years=Year,
               band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)))[["BCI"]] %>% mean(na.rm=T) %>% 
@@ -767,8 +770,8 @@ observe({
              vec=c(0,40.1,52.1,60.1,77.1))]
         ) %>% 
         ungroup() %>% 
-        mutate(Year=factor(Year,labels=paste(paste(c(2007:2016), paste0("(",
-            sapply(X=2007:2016,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")")))))
+        mutate(Year=factor(Year,labels=paste(paste(c(2007:2017), paste0("(",
+            sapply(X=2007:2017,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")")))))
     })
   })
 

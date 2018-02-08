@@ -49,7 +49,7 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
       ),
       
       tags$div(title="Choose which year's data to display",
-               sliderInput(inputId="MapYear", label="Year:", min=2007,max=2016,value=2016, sep="",step=1, ticks=T)),
+               sliderInput(inputId="MapYear", label="Year:", min=2007,max=2017,value=2017, sep="",step=1, ticks=T)),
       hr(),
       tags$div(title="Use common name, Latin name, or American Ornithological Union code",
         radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
@@ -128,10 +128,10 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
                  selectizeInput(inputId="TableSpecies",choices=NULL,label="Species")), #updated in server.r
       
         tags$div(title="Select a year.",
-                 sliderInput(inputId="TableYear", label="Year:", min=2007,max=2016,value=2016, sep="",step=1, ticks=T)),
+                 sliderInput(inputId="TableYear", label="Year:", min=2007,max=2017,value=2017, sep="",step=1, ticks=T)),
         
-        tags$div(title="Select a range of oen or more years.",
-                 sliderInput(inputId="TableYear2", label="Year:", min=2007,max=2016,value=c(2007,2016), sep="",step=1, ticks=T)),
+        tags$div(title="Select a range of one or more years.",
+                 sliderInput(inputId="TableYear2", label="Year:", min=2007,max=2017,value=c(2007,2017), sep="",step=1, ticks=T)),
         
       
         tags$div(title="Include birds at what distance from the observer?",
