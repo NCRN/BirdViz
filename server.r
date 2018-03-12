@@ -286,7 +286,7 @@ observe({
             richness=  paste(collapse="<br/>",
               paste(ShapeClick$id, ':',circleData()[circleData()$Point_Name==ShapeClick$id,]$Values, 
                   "Species","<br/>","<br/>",collapse=" "),
-              paste(getChecklist(NCRN,points=ShapeClick$id, years=input$MapYear, out.style=input$MapNames),collapse="<br/>") ),
+              paste(getChecklist(NCRN,points=ShapeClick$id, years=input$MapYear,band=MapBandUse(), out.style=input$MapNames),collapse="<br/>") ),
                 
             individual=paste(collapse="<br/>", 
                 paste(ShapeClick$id,"<br/>"),
