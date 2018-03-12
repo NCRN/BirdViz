@@ -12,10 +12,20 @@ library(jsonlite, pos=100)
 
 
 
-NCRN<-importNCRNbirds("./Data/")
-ParkList<-getParkNames(NCRN, name.class="code")
-names(NCRN)<-ParkList
-names(ParkList)<-getParkNames(NCRN, name.class="short")
+BirdData<-switch(Network,
+                 ERMN= importERMNbirds("./Data/ERMN"),
+                 GULN= importGULNbirds("./Data/GULN"),
+                 MIDN= importMIDNbirds("./Data/MIDN"),
+                 NCRN= importNCRNbirds("./Data/NCRN"),
+                 NETN= importNETNbirds("./Data/NETN")
+)
+  
+  
+  
+ 
+ParkList<-getParkNames(BirdData, name.class="code")
+names(BirdData)<-ParkList
+names(ParkList)<-getParkNames(BirdData, name.class="short")
 
 ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
@@ -77,10 +87,10 @@ shinyServer(function(input,output,session){
   
   ## List of species for map - needs to be named list.
   BirdNames<-reactive({
-    BN<-getChecklist(object =  NCRN,
+    BN<-getChecklist(object =  BirdData,
                      #years=input$MapYear,
                      band=MapBandUse())
-    TempNames<-getBirdNames(object=NCRN[[1]], names=BN, in.style="AOU", out.style=input$MapNames)
+    TempNames<-getBirdNames(object=BirdData[[1]], names=BN, in.style="AOU", out.style=input$MapNames)
     TempNames[is.na(TempNames)]<-"Needs Name"
     names(BN)<-TempNames
     BN [order(TempNames)]
@@ -149,12 +159,12 @@ observe({
   ### based on input$mapvalues, get relevant data and add it to map
   
   circleData<-reactive({
-    P<-getPoints(NCRN,years=input$MapYear)
+    P<-getPoints(BirdData,years=input$MapYear)
     switch(input$MapValues,
       
       richness={withProgress(message="Calculating...  Please Wait",value=1,
                 return(P %>% group_by(Point_Name) %>% 
-                  mutate(Values=birdRichness(NCRN,points=Point_Name, 
+                  mutate(Values=birdRichness(BirdData,points=Point_Name, 
                     years=input$MapYear,band=MapBandUse()
                   ))
                 )
@@ -162,7 +172,7 @@ observe({
       
       individual={
         req(MapBandUse() | is.na(MapBandUse()) ) # needed as NA indicates "any distace" here.
-        X<-CountXVisit(object=NCRN,years=input$MapYear,AOU=input$MapSpecies, band=MapBandUse() )
+        X<-CountXVisit(object=BirdData,years=input$MapYear,AOU=input$MapSpecies, band=MapBandUse() )
         switch(input$SpeciesValues,
           "Visit 1"={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit1) %>% 
                                               rename(Values=Visit1) ) )},
@@ -173,7 +183,7 @@ observe({
         )
       },
       bci={withProgress(message="Calculating...  Please Wait",value=1,
-           return(P %>% left_join(BCI(object=NCRN, years=input$MapYear,points=P$Point_Name,
+           return(P %>% left_join(BCI(object=BirdData, years=input$MapYear,points=P$Point_Name,
                                       band=MapBandUse()  ) %>% 
                    mutate(Values=factor(BCI_Category, 
                                levels=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))) %>% 
@@ -188,7 +198,7 @@ observe({
            richness="# of Species",
            individual={
              req(input$MapSpecies)
-              Part1<-paste0(getBirdNames(object=NCRN[[1]], names =  input$MapSpecies, in.style="AOU", 
+              Part1<-paste0(getBirdNames(object=BirdData[[1]], names =  input$MapSpecies, in.style="AOU", 
                                          out.style = input$MapNames), "s<br>Detected")
               Part2<-paste0("<br><svg height='15' width='20'> <circle cx='10' cy='10' r='5', stroke='black' fill='black'/>
                             </svg> NPS Data<br> <svg height='15' width='20'> <circle cx='10' cy='10' r='5' stroke='black' 
@@ -286,7 +296,7 @@ observe({
             richness=  paste(collapse="<br/>",
               paste(ShapeClick$id, ':',circleData()[circleData()$Point_Name==ShapeClick$id,]$Values, 
                   "Species","<br/>","<br/>",collapse=" "),
-              paste(getChecklist(NCRN,points=ShapeClick$id, years=input$MapYear,band=MapBandUse(), out.style=input$MapNames),collapse="<br/>") ),
+              paste(getChecklist(BirdData,points=ShapeClick$id, years=input$MapYear,band=MapBandUse(), out.style=input$MapNames),collapse="<br/>") ),
                 
             individual=paste(collapse="<br/>", 
                 paste(ShapeClick$id,"<br/>"),
@@ -341,7 +351,7 @@ observe({
   })
 
   #### Get ebird data ####
-  EBirdName<-reactive({getBirdNames(object=NCRN[[1]], names=input$MapSpecies, in.style="AOU", out.style="Latin")})
+  EBirdName<-reactive({getBirdNames(object=BirdData[[1]], names=input$MapSpecies, in.style="AOU", out.style="Latin")})
 
   EBirdGet<-function(Species,State,Days){           ### Get data from EBird
     tryCatch(                                       ### tryCatch is for when our name aren't in ebird (e.g. "unidentified bird")
@@ -382,7 +392,7 @@ observe({
   })
   
   
-  TableParkUse<-reactive({ if (input$ParkTable=="All") NCRN else NCRN[input$ParkTable] })  
+  TableParkUse<-reactive({ if (input$ParkTable=="All") BirdData else BirdData[input$ParkTable] })  
   
   #### Make bird species control and figure out name for Captions and Titles ####
   BirdTableNames<-reactive({
@@ -390,7 +400,7 @@ observe({
       need(input$ParkTable, "Working...")
     )
     BN2<-getChecklist(object = TableParkUse() ) 
-    TempNames2<-getBirdNames(object=NCRN[[1]], names = BN2, in.style = "AOU", out.style = input$TableNames)
+    TempNames2<-getBirdNames(object=BirdData[[1]], names = BN2, in.style = "AOU", out.style = input$TableNames)
     TempNames2[is.na(TempNames2)]<-"Needs Name"
     names(BN2)<-TempNames2
     BN2 [order(TempNames2)]
@@ -402,7 +412,7 @@ observe({
 
   
   #### Bird name to use for titles and captions ####
-  BirdName<-reactive(getBirdNames(object=NCRN[[1]], names =  input$TableSpecies, 
+  BirdName<-reactive(getBirdNames(object=BirdData[[1]], names =  input$TableSpecies, 
                                   in.style="AOU", out.style = input$TableNames))
   
   
@@ -421,7 +431,7 @@ observe({
   #### Individual tables, titles, captions, basedata used to calculate other tables ####
   
   IndividualBase<-reactive({
-    CountXVisit(object=NCRN,
+    CountXVisit(object=BirdData,
                 years=input$TableYear2[1]:input$TableYear2[2], 
                 band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)), 
                 AOU=input$TableSpecies)
@@ -432,7 +442,7 @@ observe({
     {if(input$TableZeroHide) filter(.,Visit1 >0 | Visit2 >0) else . } %>% 
       {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>% 
       rename("Visit 1"= Visit1, "Visit 2"=Visit2) %>% 
-      mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name) ) %>% 
+      mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name) ) %>% 
       dplyr::select(Park, `Point Name`, Year, `Visit 1`,`Visit 2`)
   })
   
@@ -446,7 +456,7 @@ observe({
     summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
                "Mean Visit 2"= round(mean(Visit2, na.rm=T),digits=2) ) %>% 
     dplyr::select(`Mean Visit 1`,`Mean Visit 2`) %>% unname()) ) %>% 
-    t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks"))
+    t() %>% "colnames<-"(c(getParkNames(BirdData),"All Parks"))
   })
  
   IndividualPointTitle<-reactive({paste(BirdName()," Data")})
@@ -470,7 +480,7 @@ observe({
         mutate(Species=birdRichness(TableParkUse(),points=Point_Name, years=input$TableYear,
                                     band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)))) %>% 
         ungroup() %>%
-        mutate(Park=factor(getParkNames(object=NCRN[Admin_Unit_Code])), 
+        mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code])), 
                 "Point Name"=factor(Point_Name),
                 Year=input$TableYear) %>% 
         dplyr::select(Park,`Point Name`, Year, Species )
@@ -478,11 +488,11 @@ observe({
   })
   
   RichnessPark<-reactive({
-    data.frame(c(birdRichness(NCRN,years=input$TableYear, band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)),output="list"), 
-                birdRichness(NCRN,years=input$TableYear,band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand))))) %>%
-    rbind (c(sapply(getPoints(NCRN,years=input$TableYear,output="list"),nrow),
-             nrow(getPoints(NCRN,years=input$TableYear)))) %>% 
-    "names<-"(c(getParkNames(NCRN),"All Parks")) %>% 
+    data.frame(c(birdRichness(BirdData,years=input$TableYear, band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)),output="list"), 
+                birdRichness(BirdData,years=input$TableYear,band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand))))) %>%
+    rbind (c(sapply(getPoints(BirdData,years=input$TableYear,output="list"),nrow),
+             nrow(getPoints(BirdData,years=input$TableYear)))) %>% 
+    "names<-"(c(getParkNames(BirdData),"All Parks")) %>% 
     "row.names<-"(c("Species","Monitoring Points"))
   })
   
@@ -502,7 +512,7 @@ observe({
   
   BCIBase<-reactive({
     withProgress(message="Calculating...  Please Wait",value=1,{
-     BCI(object=NCRN, years=input$TableYear,band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)))
+     BCI(object=BirdData, years=input$TableYear,band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)))
    })
   })    
 
@@ -523,7 +533,7 @@ observe({
     mutate("Park BCI Category"=
       c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")[findInterval(`Mean BCI`,
                                 vec=c(0,40.1,52.1,60.1,77.1))] ) %>% 
-    t() %>% "colnames<-"(c(getParkNames(NCRN),"All Parks") )
+    t() %>% "colnames<-"(c(getParkNames(BirdData),"All Parks") )
   })
   
   BCIPointTitle<-reactive(paste0("Bird Community Index by Point: ",input$TableYear))
@@ -645,7 +655,7 @@ observe({
     input$PointTable_rows_selected,{
       RowSelect<-input$PointTable_rows_selected #shorter name for convience
       
-      PointSelected<-getPoints(NCRN) %>% 
+      PointSelected<-getPoints(BirdData) %>% 
       group_by(Point_Name) %>% 
       filter(Point_Name==as.character(PointTableData()[[RowSelect,"Point Name"]]))
      
@@ -684,7 +694,7 @@ observe({
             richness= paste(collapse="<br/>",
                 paste(PointSelected$Point_Name,':',PointTableData()[RowSelect,"Species"], 
                                     "Species","<br/>","<br/>",collapse=" "),
-                paste(getChecklist(NCRN,points=PointSelected$Point_Name, years=input$MapYear, 
+                paste(getChecklist(BirdData,points=PointSelected$Point_Name, years=input$MapYear, 
                                    out.style=input$MapNames),collapse="<br/>")) ,
             bci=paste(sep="<br/>", PointSelected$Point_Name, paste0('BCI Value: ',
               PointTableData()[RowSelect,"BCI"]),
@@ -704,12 +714,12 @@ observe({
     selectizeInput(inputId="ParkPlot",label="Park:", choices=c("All Parks"="All", ParkList), selected="All" ) 
   })
   
- PlotParkUse<-reactive({  if (input$ParkPlot=="All") NCRN else NCRN[[input$ParkPlot]] })
+ PlotParkUse<-reactive({  if (input$ParkPlot=="All") BirdData else BirdData[[input$ParkPlot]] })
  
   
   BirdPlotNames<-reactive({
-    BN3<-getChecklist(object =NCRN) #, years=input$TableYear, band=1)
-    TempNames3<-getBirdNames(object=NCRN[[1]], names=BN3, in.style="AOU", out.style=input$PlotNames)
+    BN3<-getChecklist(object =BirdData) #, years=input$TableYear, band=1)
+    TempNames3<-getBirdNames(object=BirdData[[1]], names=BN3, in.style="AOU", out.style=input$PlotNames)
     TempNames3[is.na(TempNames3)]<-"Needs Name"
     names(BN3)<-TempNames3
     BN3 [order(TempNames3)]
@@ -732,7 +742,7 @@ observe({
 
   DetectsPlotData<-reactive({
     if(!is.null(input$ParkPlot)){
-    CountXVisit(object=NCRN, 
+    CountXVisit(object=BirdData, 
                band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)), 
                AOU=input$PlotSpecies) %>% 
     { if (input$ParkPlot=="All") . else filter(.,Admin_Unit_Code==input$ParkPlot)} %>% 
@@ -776,9 +786,9 @@ observe({
   })
 
   #### Bird name to use for titles and captions ####
-  PlotBirdName<-reactive(getBirdNames(object=NCRN[[1]], names =  input$PlotSpecies, 
+  PlotBirdName<-reactive(getBirdNames(object=BirdData[[1]], names =  input$PlotSpecies, 
                                   in.style="AOU", out.style = input$PlotNames))
-  PlotParkName<-reactive(if (input$ParkPlot=="All") "All NCRN Parks" else getParkNames(PlotParkUse(),"short" ))
+  PlotParkName<-reactive(if (input$ParkPlot=="All") paste("All",Network,"Parks") else getParkNames(PlotParkUse(),"short" ))
   
   
   PlotDetectTitle<-reactive({paste0(PlotBirdName(),"s Detected per Point in ",PlotParkName() )})
@@ -897,7 +907,7 @@ output$ParkListSelect<-renderUI({
   selectizeInput(inputId="ParkList",label="Park", choices=ParkList ) 
 })
 
-ListParkUse<-reactive({  if (input$ParkList=="All") NCRN else NCRN[[input$ParkList]] })
+ListParkUse<-reactive({  if (input$ParkList=="All") BirdData else BirdData[[input$ParkList]] })
 
 output$PointListSelect <-renderUI({
   validate(
@@ -936,8 +946,8 @@ MonitoringList<-reactive({
   validate(
     need(input$ParkList, "Please select a park.")
   )
- tbl_df(data.frame( 'Latin.Name'= getChecklist(object=NCRN[[input$ParkList]], points=ListPoints(),out.style="Latin"))) %>% 
-    mutate('Common Name' = getBirdNames(object=NCRN[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "common")) %>% 
+ tbl_df(data.frame( 'Latin.Name'= getChecklist(object=BirdData[[input$ParkList]], points=ListPoints(),out.style="Latin"))) %>% 
+    mutate('Common Name' = getBirdNames(object=BirdData[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "common")) %>% 
     rename('Latin Name'= Latin.Name) %>% arrange(`Common Name`) %>%  .[,c(2,1)]
 })
 
