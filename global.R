@@ -14,11 +14,12 @@ Years<-switch(Network,
               NETN=list(Start=NA, End=NA)
 )
 
+## Note - first option listed for ExtraLayers will be chosen by default - "None" is highly recommended.
 ExtraLayers<-switch(Network,
                     ERMN=c(None="None"),
                     GULN=c(None="None"),
                     MIDN=c(None="None"),
-                    NCRN=c(None="None", "EcoRegions"="EcoReg","Forested Areas"="ForArea"),
+                    NCRN=c(None="None", "Ecoregions"="Ecoregions","Forested Areas"="Forested"),
                     NETN=c(None="None")
 )
 

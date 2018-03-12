@@ -81,8 +81,8 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
     div(class="panel panel-default controls",id="ExtraLayerPanel",
                h4("Additional Layers", class="panel-heading"),
                tags$div(title="Add additional informtaion to the parks on the map.",
-                        selectizeInput(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), 
-                                     selected="None"))
+                        selectizeInput(inputId="Layers",label=NULL,choices=ExtraLayers)
+               )
     )
     ), #End code for column on left
   
@@ -248,10 +248,10 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
 
   navbarMenu(title="About the Project",
     tabPanel("Project Information",
-             includeHTML("./www/ProjectInfo.html")
+             ProjectInfo
     ),
     tabPanel("Citations and References",
-             includeHTML("./www/Citations.html")
+             Citations
     )
   )# end of About tab
 
