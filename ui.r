@@ -3,9 +3,9 @@ library(leaflet)
 library(ggvis)
 library(shinyjs)
 
-navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/ncrn/'> <img src='ah_small_black.gif',
+navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.gif',
                       alt='Forest Bird Visualizer'> </a> Forest Bird Visualizer</div>"),
-           position = "static-top",inverse=TRUE, collapsible = FALSE, fluid=TRUE, windowTitle = "NCRN Birds",
+           position = "static-top",inverse=TRUE, collapsible = FALSE, fluid=TRUE, windowTitle = paste(Network,"Forest Birds"),
            theme="https://www.nps.gov/lib/bootstrap/3.3.2/css/nps-bootstrap.min.css", id="MainNavBar",
           
   tabPanel(title="Map", style="padding: 0",
@@ -49,7 +49,7 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
       ),
       
       tags$div(title="Choose which year's data to display",
-               sliderInput(inputId="MapYear", label="Year:", min=2007,max=2017,value=2017, sep="",step=1, ticks=T)),
+               sliderInput(inputId="MapYear", label="Year:", min=Years$Start,max=Years$End, value=Years$End, sep="",step=1, ticks=T)),
       hr(),
       tags$div(title="Use common name, Latin name, or American Ornithological Union code",
         radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
@@ -81,8 +81,8 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
     div(class="panel panel-default controls",id="ExtraLayerPanel",
                h4("Additional Layers", class="panel-heading"),
                tags$div(title="Add additional informtaion to the parks on the map.",
-                        selectizeInput(inputId="Layers",label=NULL,choices=c("None","Ecoregions","Forested Area"="Forested"), 
-                                     selected="None"))
+                        selectizeInput(inputId="Layers",label=NULL,choices=ExtraLayers)
+               )
     )
     ), #End code for column on left
   
@@ -128,10 +128,11 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
                  selectizeInput(inputId="TableSpecies",choices=NULL,label="Species")), #updated in server.r
       
         tags$div(title="Select a year.",
-                 sliderInput(inputId="TableYear", label="Year:", min=2007,max=2017,value=2017, sep="",step=1, ticks=T)),
+                 sliderInput(inputId="TableYear", label="Year:", min=Years$Start,max=Years$End,value=Years$End, sep="",step=1, ticks=T)),
         
         tags$div(title="Select a range of one or more years.",
-                 sliderInput(inputId="TableYear2", label="Year:", min=2007,max=2017,value=c(2007,2017), sep="",step=1, ticks=T)),
+                 sliderInput(inputId="TableYear2", label="Year:", min=Years$Start,max=Years$End,value=c(Years$Start,Years$End), sep="",
+                             step=1, ticks=T)),
         
       
         tags$div(title="Include birds at what distance from the observer?",
@@ -247,10 +248,10 @@ navbarPage(title=HTML("<div> <a href='https://science.nature.nps.gov/im/units/nc
 
   navbarMenu(title="About the Project",
     tabPanel("Project Information",
-             includeHTML("./www/ProjectInfo.html")
+             ProjectInfo
     ),
     tabPanel("Citations and References",
-             includeHTML("./www/Citations.html")
+             Citations
     )
   )# end of About tab
 
