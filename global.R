@@ -11,7 +11,7 @@ Years<-switch(Network,
               GULN=list(Start=NA, End=NA),
               MIDN=list(Start=NA, End=NA),
               NCRN=list(Start=2007, End=2017),
-              NETN=list(Start=NA, End=NA)
+              NETN=list(Start=2006, End=2017)
 )
 
 ## Note - first option listed for ExtraLayers will be chosen by default - "None" is highly recommended.
