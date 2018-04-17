@@ -873,8 +873,8 @@ observe({
       layer_ribbons(y=52, y2 = 60, fill:="yellow", opacity:=.20) %>%
       layer_ribbons(y= 60, y2 = 80, fill:="green", opacity:=.20) %>%
       layer_points(x=~Year,y=~BCI, fill=~`BCI Category`, size:=200, opacity:=.75,stroke="black") %>%
-      scale_nominal("fill", range=c("red","orange","yellow","green"),
-                  domain=c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")) %>% 
+      scale_nominal("fill", range=c("green","yellow","orange","red"),
+                  domain=c("Highest Integrity","High Integrity", "Medium Integrity","Low Integrity")) %>% 
       add_tooltip(function(x)paste("Year=",x$Year,"<br/>", "BCI=",x$BCI, "<br/>", x[["BCI Category"]]), on="hover" ) %>% 
       add_axis(type="x",title="Year") %>% #, format="####"
       #scale_numeric("x", domain=c(2007,2016),expand=0.008) %>% 
