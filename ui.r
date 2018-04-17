@@ -35,25 +35,31 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
         selectizeInput(inputId="MapValues", label="Data to Map", choices=c("Individual Species"="individual",
                                       "Number of Species"="richness", "Bird Community Index (BCI)"="bci"))
       ),
-    
-      tags$div(title="Include birds at what distance from the observer?",
-        selectizeInput(inputId="MapBand", label="Distance from Observer:",
-         choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))
-      ),
       
       div(id="SpeciesControls",
-        tags$div(title="Species to display on map",
-               selectizeInput(inputId="MapSpecies",choices=NULL,label="Species")), #updated in server.r
-        tags$div(title="Display bird observations from Vist 1, Visit 2, or the maixmum of the two ",
-               selectizeInput(inputId="SpeciesValues", label="Visit", choices=c("Maximum Observed", "Visit 1", "Visit 2")))
-      ),
-      
-      tags$div(title="Choose which year's data to display",
-               sliderInput(inputId="MapYear", label="Year:", min=Years$Start,max=Years$End, value=Years$End, sep="",step=1, ticks=T)),
+          tags$div(title="Species to display on map",
+                   selectizeInput(inputId="MapSpecies",choices=NULL,label="Species")), #updated in server.r
+          
+          tags$div(title="Use common name, Latin name, or American Ornithological Union code",
+                   radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
+          
+          br(),
+          
+          tags$div(title="Choose which year's data to display",
+                   sliderInput(inputId="MapYear", label="Year:", min=Years$Start,max=Years$End, value=Years$End, sep="",step=1, ticks=T)),
+          
+          tags$div(title="Include birds at what distance from the observer?",
+                   selectizeInput(inputId="MapBand", label="Distance from Observer:",
+                                  choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))
+          ),
+          
+          tags$div(title="Display bird observations from Vist 1, Visit 2, or the maixmum of the two ",
+                   selectizeInput(inputId="SpeciesValues", label="Visit", choices=c("Maximum Observed", "Visit 1", "Visit 2")))
+          
+        ),
+    
       hr(),
-      tags$div(title="Use common name, Latin name, or American Ornithological Union code",
-        radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
-      hr(),
+    
       h4("eBird Data",class="panel-heading", id="EBirdTitle"),
       tags$div(title="Display citizen science from ebird (non-NPS data)",
         checkboxInput(inputId="MapEBird", label="Show recent eBird Data?")),
