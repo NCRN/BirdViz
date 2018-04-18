@@ -756,6 +756,8 @@ observe({
     }
   })
 
+  
+  DetectsPlotTics<-reactive(levels(DetectsPlotData()$Year))
       
   RichnessPlotData<-reactive({
     if(!is.null(input$ParkPlot)){
@@ -813,7 +815,7 @@ observe({
         ggvis() %>% 
         layer_points(x=~Year, y=~Mean, fill= ~Visit , size:=200, opacity:=.66) %>% 
         add_tooltip(function(x)paste("Year=",x$Year,"<br/>", " Mean Detected =",x$Mean), on="hover" ) %>% 
-        add_axis(type="x",title="Year",  properties=axis_props(title=list(fontSize=14))) %>% #format="####",
+        add_axis(type="x",title="Year", title_offset = 65, properties=axis_props(title=list(fontSize=14), labels=list(angle=45, align="left") )) %>% #format="####",
         #scale_numeric("x", domain=c(2007,2016))%>% 
         add_axis(type="y",title="Mean # Birds Detected per Point", title_offset=45, 
                  properties=axis_props(title=list(fontSize=14))) %>% 
@@ -842,7 +844,7 @@ observe({
       ggvis() %>% 
       layer_points(x=~Year, y=~Species, size:=200, fill="blue", opacity:=.75) %>% 
       add_tooltip(function(x)paste("Year=",x$Year,"<br/>", "Species=",x$Species), on="hover" ) %>% 
-      add_axis(type="x",title="Year" ) %>%   #,format="####"
+      add_axis(type="x",title="Year",title_offset = 65, properties=axis_props(title=list(fontSize=14), labels=list(angle=45, align="left") )) %>%   #,format="####"
       #scale_numeric("x", domain=c(2007,2016)) %>% 
       add_axis(type="y",title="Species Detected") %>% 
       scale_numeric("y",domain=c(0,150) )%>% 
@@ -876,7 +878,7 @@ observe({
       scale_nominal("fill", range=c("green","yellow","orange","red"),
                   domain=c("Highest Integrity","High Integrity", "Medium Integrity","Low Integrity")) %>% 
       add_tooltip(function(x)paste("Year=",x$Year,"<br/>", "BCI=",x$BCI, "<br/>", x[["BCI Category"]]), on="hover" ) %>% 
-      add_axis(type="x",title="Year") %>% #, format="####"
+      add_axis(type="x",title="Year",title_offset = 65,properties=axis_props(title=list(fontSize=14), labels=list(angle=45, align="left"))) %>% #, format="####"
       #scale_numeric("x", domain=c(2007,2016),expand=0.008) %>% 
       add_axis(type="y",title="Bird Community Index (BCI)") %>% 
       scale_numeric("y",domain=c(0,80),expand=0) %>%
