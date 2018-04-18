@@ -450,12 +450,14 @@ observe({
     IndividualBase() %>% 
     group_by(Admin_Unit_Code) %>% 
     summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
-             "Mean Visit 2"= round( mean(Visit2, na.rm=T),digits=2)) %>%
-    dplyr::select(`Mean Visit 1`,`Mean Visit 2`) %>%
+             "Mean Visit 2"= round( mean(Visit2, na.rm=T),digits=2),
+             "Max Observed"= round(mean(pmax(Visit1, Visit2, na.rm=2)),digits=2)) %>%
+    dplyr::select(`Mean Visit 1`,`Mean Visit 2`,`Max Observed`) %>%
     rbind(c(IndividualBase() %>% 
     summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
-               "Mean Visit 2"= round(mean(Visit2, na.rm=T),digits=2) ) %>% 
-    dplyr::select(`Mean Visit 1`,`Mean Visit 2`) %>% unname()) ) %>% 
+               "Mean Visit 2"= round(mean(Visit2, na.rm=T),digits=2),
+              "Max Observed"= round(mean(pmax(Visit1, Visit2, na.rm=2)),digits=2)) %>% 
+    dplyr::select(`Mean Visit 1`,`Mean Visit 2`,`Max Observed`) %>% unname()) ) %>% 
     t() %>% "colnames<-"(c(getParkNames(BirdData),"All Parks"))
   })
  
