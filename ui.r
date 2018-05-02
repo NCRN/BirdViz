@@ -28,8 +28,6 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
     div( id="MapControlPanel", class="panel panel-default controls", 
       
       h4("Map Controls",class="panel-heading"),
-      
-      #textOutput("Test"),
 
       tags$div(title="Choose the type of data you wish to see",
         selectizeInput(inputId="MapValues", label="Data to Map", choices=c("Individual Species"="individual",
@@ -50,23 +48,25 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
           
           tags$div(title="Include birds at what distance from the observer?",
                    selectizeInput(inputId="MapBand", label="Distance from Observer:",
-                                  choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))
+                                  choices=NULL))# updated in server.r
+          #c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))
           ),
           
-          tags$div(title="Display bird observations from Vist 1, Visit 2, or the maixmum of the two ",
-                   selectizeInput(inputId="SpeciesValues", label="Visit", choices=c("Maximum Observed", "Visit 1", "Visit 2")))
+          tags$div(title="Display bird observations from which visit? ",
+                   selectizeInput(inputId="MapVisit", label="Visit", choices=NULL)), #updated in server.r
+      #c("Maximum Observed", "Visit 1", "Visit 2"))),
           
-        ),
+        
     
       hr(),
     
-      h4("eBird Data",class="panel-heading", id="EBirdTitle"),
-      tags$div(title="Display citizen science from ebird (non-NPS data)",
-        checkboxInput(inputId="MapEBird", label="Show recent eBird Data?")),
-      
-      tags$div(title="# of days worth of data to display",
-      sliderInput(inputId="MapEBirdDays", label= "Display data from how many days prior to today?",min=1,max=30,sep="",value=14 )),
-      hr(),
+      # h4("eBird Data",class="panel-heading", id="EBirdTitle"),
+      # tags$div(title="Display citizen science from ebird (non-NPS data)",
+      #   checkboxInput(inputId="MapEBird", label="Show recent eBird Data?")),
+      # 
+      # tags$div(title="# of days worth of data to display",
+      # sliderInput(inputId="MapEBirdDays", label= "Display data from how many days prior to today?",min=1,max=30,sep="",value=14 )),
+      # hr(),
       actionButton(inputId="AboutMap", class="btn btn-primary", label="About the map...")),
     
     #### Zoom Box ####

@@ -41,10 +41,10 @@ shinyServer(function(input,output,session){
   observe({
     ### Maps
     toggle( id="SpeciesControls" , condition= (input$MapValues=="individual"))
-    toggleState( id='SpeciesValues', condition=( input$MapSpecies!=""))
+    toggleState( id='MapVisit', condition=( input$MapSpecies!=""))
     toggle(id="EBirdTitle", condition=(input$MapValues=="individual"))
-    toggle(id="MapEBird", condition = (input$MapValues=="individual"))
-    toggle(id="MapEBirdDays", condition =(input$MapEBird & input$MapValues=="individual")) 
+    #toggle(id="MapEBird", condition = (input$MapValues=="individual"))
+    #toggle(id="MapEBirdDays", condition =(input$MapEBird & input$MapValues=="individual")) 
     onclick(id="AboutMap", expr= toggle(id="AboutMapPanel"))
     onclick(id="CloseAboutMap", expr= toggle(id="AboutMapPanel")) 
     
@@ -74,16 +74,16 @@ shinyServer(function(input,output,session){
   
   output$BirdMap<-renderLeaflet({
     leaflet() %>%
-      setView(lng=-77.8,lat=39.03,zoom=9) %>% 
-      setMaxBounds(lng1=-79.5,lng2=-76.1, lat1=37.7, lat2=40.36)
+      setView(lng=mean(c(ParkBounds[ParkBounds$ParkCode==Network,]$LongE,ParkBounds[ParkBounds$ParkCode==Network,]$LongW)),
+              lat=mean(c(ParkBounds[ParkBounds$ParkCode==Network,]$LatN,ParkBounds[ParkBounds$ParkCode==Network,]$LatS)),
+              zoom=8 ) %>%
+      setMaxBounds(lng1=ParkBounds[ParkBounds$ParkCode==Network,]$LongE,lng2=ParkBounds[ParkBounds$ParkCode==Network,]$LongW,
+                   lat1=ParkBounds[ParkBounds$ParkCode==Network,]$LatN, lat2=ParkBounds[ParkBounds$ParkCode==Network,]$LatS)
   })
   
 
   #### Reactive Map UI Widgets ####
-  
-  ## Band to use for map
 
-  MapBandUse<-reactive({ if(input$MapBand=="All") NA else seq(as.numeric(input$MapBand)) })
   
   ## List of species for map - needs to be named list.
   BirdNames<-reactive({
@@ -103,6 +103,28 @@ observe({
                          options = list(placeholder='Choose a species'),server = FALSE,
                          selected=if(!input$MapSpecies==""){input$MapSpecies})
     )
+})
+
+observe({
+  updateSelectizeInput(session, inputId="MapBand", label="Distance from Observer:", 
+    choices= setNames(getDesign(BirdData[[1]], info="bands")$Band, paste0("0 - ", 
+        getDesign(BirdData[[1]], info="bands")$MaxDistance, " meters")) )
+})
+
+## Band to use for map
+
+MapBandUse<-reactive({
+  req(input$MapBand)
+  if(input$MapBand=="All") NA else seq(as.numeric(input$MapBand))
+})
+
+
+
+observe({
+  updateSelectizeInput(session, inputId="MapVisit", label="Visit:", 
+            choices= setNames(c("Maximum Observed", paste0("Visit",(1:getDesign(BirdData[[1]], info="visits")))),
+              c("Maximum Observed", paste0("Visit ",(1:getDesign(BirdData[[1]], info="visits"))))) 
+  )
 })
 
 #### Make map with Base Layer and Layer Controls ####
@@ -173,13 +195,21 @@ observe({
       individual={
         req(MapBandUse() | is.na(MapBandUse()) ) # needed as NA indicates "any distace" here.
         X<-CountXVisit(object=BirdData,years=input$MapYear,AOU=input$MapSpecies, band=MapBandUse() )
-        switch(input$SpeciesValues,
-          "Visit 1"={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit1) %>% 
-                                              rename(Values=Visit1) ) )},
-          "Visit 2" ={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit2) %>% 
-                                              rename(Values=Visit2) ) )},
+        switch(input$MapVisit,
+          # "Visit 1"={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit1) %>% 
+          #                                     rename(Values=Visit1) ) )},
+          # "Visit 2" ={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit2) %>% 
+          #                                      rename(Values=Visit2) ) )},
+          # "Visit 3" ={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit3) %>% 
+          #                                      rename(Values=Visit3) ) )},
+          # "Visit 4" ={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit4) %>% 
+          #                                      rename(Values=Visit4) ) )},
           "Maximum Observed"={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit1,Visit2) %>% 
-                                                       transmute(Point_Name=Point_Name,Values=pmax(Visit1,Visit2,na.rm=TRUE) ) ))}
+                                                       transmute(Point_Name=Point_Name,Values=pmax(Visit1,Visit2,na.rm=TRUE) ) ))},
+          ## If is is not "Maximum Observed" it is "Visit N" and is handeld by the default below.
+          return(P %>% left_join(X %>% dplyr::select(Point_Name,input$MapVisit) %>% 
+                                    rename(Values=!!input$MapVisit) ) )
+          
         )
       },
       bci={withProgress(message="Calculating...  Please Wait",value=1,
@@ -200,10 +230,11 @@ observe({
              req(input$MapSpecies)
               Part1<-paste0(getBirdNames(object=BirdData[[1]], names =  input$MapSpecies, in.style="AOU", 
                                          out.style = input$MapNames), "s<br>Detected")
-              Part2<-paste0("<br><svg height='15' width='20'> <circle cx='10' cy='10' r='5', stroke='black' fill='black'/>
-                            </svg> NPS Data<br> <svg height='15' width='20'> <circle cx='10' cy='10' r='5' stroke='black' 
-                            fill='transparent'/></svg> eBird Data")
-              if(input$MapEBird) paste0(Part1, Part2) else Part1},
+              # Part2<-paste0("<br><svg height='15' width='20'> <circle cx='10' cy='10' r='5', stroke='black' fill='black'/>
+              #               </svg> NPS Data<br> <svg height='15' width='20'> <circle cx='10' cy='10' r='5' stroke='black' 
+              #               fill='transparent'/></svg> eBird Data")
+              # if(input$MapEBird) paste0(Part1, Part2) else Part1
+              },
            bci="Bird Community Index")
   })
   
@@ -224,11 +255,13 @@ observe({
 #### Figure out values for Map legend ####
   LegendValues<-reactive({
     
-    if(!input$MapEBird) unique(circleData()$Values) else{
-           TempValues<-unique(c(circleData()$Values,EBirdData()$howMany))  
-           TempValues[TempValues>8]<-"9+"
-           return(TempValues)
-    }
+    #if(!input$MapEBird) 
+    unique(circleData()$Values) 
+    # else{
+    #        TempValues<-unique(c(circleData()$Values,EBirdData()$howMany))  
+    #        TempValues[TempValues>8]<-"9+"
+    #        return(TempValues)
+    #}
   })
   
  #### Add Legend ####
@@ -306,11 +339,11 @@ observe({
                       paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeClick$id,]$Values) )
             )
         ),
-        Ecoregions=, Forested=,addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
-        #Forested=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
-        EBird=addPopups(map=., lat=ShapeClick$lat, lng=ShapeClick$lng, 
-          popup=paste0(EBirdData()[ShapeClick$id,"locName"],"<br>", EBirdData()[ShapeClick$id,"howMany"],
-                       " detected<br>",EBirdData()[ShapeClick$id,"obsDt"]))
+        Ecoregions=, Forested=,addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id)
+        #,
+        # EBird=addPopups(map=., lat=ShapeClick$lat, lng=ShapeClick$lng, 
+        #   popup=paste0(EBirdData()[ShapeClick$id,"locName"],"<br>", EBirdData()[ShapeClick$id,"howMany"],
+        #                " detected<br>",EBirdData()[ShapeClick$id,"obsDt"]))
       )}
   })
   
@@ -351,35 +384,35 @@ observe({
   })
 
   #### Get ebird data ####
-  EBirdName<-reactive({getBirdNames(object=BirdData[[1]], names=input$MapSpecies, in.style="AOU", out.style="Latin")})
-
-  EBirdGet<-function(Species,State,Days){           ### Get data from EBird
-    tryCatch(                                       ### tryCatch is for when our name aren't in ebird (e.g. "unidentified bird")
-      fromJSON(URLencode(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-",State,"&sci=",
-                        Species,"&back=",Days,"&fmt=json"))),
-      error=function(cond){return(list())}
-    )
-  }
-  
-  EBirdData<-reactive({ if(input$MapSpecies!="" & input$MapEBird ){
-    withProgress(message="Downloading ...  Please Wait",value=1,{
-      rbind(EBirdGet(EBirdName(),"DC",input$MapEBirdDays),EBirdGet(EBirdName(),"MD",input$MapEBirdDays),
-            EBirdGet(EBirdName(),"VA",input$MapEBirdDays),EBirdGet(EBirdName(),"WV",input$MapEBirdDays)) %>% 
-       {if(class(.)=="matrix" ) . else filter(.,!is.na(howMany))}
-    })
-  }})
+  # EBirdName<-reactive({getBirdNames(object=BirdData[[1]], names=input$MapSpecies, in.style="AOU", out.style="Latin")})
+  # 
+  # EBirdGet<-function(Species,State,Days){           ### Get data from EBird
+  #   tryCatch(                                       ### tryCatch is for when our name aren't in ebird (e.g. "unidentified bird")
+  #     fromJSON(URLencode(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-",State,"&sci=",
+  #                       Species,"&back=",Days,"&fmt=json"))),
+  #     error=function(cond){return(list())}
+  #   )
+  # }
+  # 
+  # EBirdData<-reactive({ if(input$MapSpecies!="" & input$MapEBird ){
+  #   withProgress(message="Downloading ...  Please Wait",value=1,{
+  #     rbind(EBirdGet(EBirdName(),"DC",input$MapEBirdDays),EBirdGet(EBirdName(),"MD",input$MapEBirdDays),
+  #           EBirdGet(EBirdName(),"VA",input$MapEBirdDays),EBirdGet(EBirdName(),"WV",input$MapEBirdDays)) %>% 
+  #      {if(class(.)=="matrix" ) . else filter(.,!is.na(howMany))}
+  #   })
+  # }})
  
 
   #### add EBird cicles ####
-  observe({ 
-    if(input$MapSpecies!="" & input$MapEBird & class(EBirdData() )=="data.frame" & input$MapValues=="individual"){
-      leafletProxy("BirdMap") %>%  
-      clearGroup("EBird") %>% 
-      addCircles(data=EBirdData(), layerId=rownames(EBirdData()), group="EBird",
-                 color=MapColors()(EBirdData()$howMany),fillColor = 'white',
-                  opacity=1, fillOpacity=0, radius=as.numeric(input$PointSize))             
-    } else {leafletProxy("BirdMap") %>% clearGroup("EBird")}
-  })
+  # observe({ 
+  #   if(input$MapSpecies!="" & input$MapEBird & class(EBirdData() )=="data.frame" & input$MapValues=="individual"){
+  #     leafletProxy("BirdMap") %>%  
+  #     clearGroup("EBird") %>% 
+  #     addCircles(data=EBirdData(), layerId=rownames(EBirdData()), group="EBird",
+  #                color=MapColors()(EBirdData()$howMany),fillColor = 'white',
+  #                 opacity=1, fillOpacity=0, radius=as.numeric(input$PointSize))             
+  #   } else {leafletProxy("BirdMap") %>% clearGroup("EBird")}
+  # })
   
   #########################################  Data Table Functions  ########################################################
 
@@ -673,8 +706,8 @@ observe({
       
 
 
-      updateSelectizeInput(session, inputId="SpeciesValues", 
-              selected=ifelse(input$TableValues %in% c("individual","detects"), "Maximum Observed", input$SpeciesValues))
+      updateSelectizeInput(session, inputId="MapVisit", 
+              selected=ifelse(input$TableValues %in% c("individual","detects"), "Maximum Observed", input$MapVisit))
       
       updateRadioButtons(session,inputId="MapNames", selected=input$TableNames)
       

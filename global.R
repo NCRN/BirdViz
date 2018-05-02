@@ -1,6 +1,6 @@
 #### Network Specific Settings ####
 
-Network<-"NCRN"
+Network<-"NETN"
 
 NetworkURL<-switch(Network,
                    ERMN=, GULN, MIDN=, NCRN=, NETN = paste0('https://science.nature.nps.gov/im/units/',tolower(Network),'/index.cfm')
@@ -24,17 +24,17 @@ ExtraLayers<-switch(Network,
 )
 
 ProjectInfo<-switch(Network,
-                    ERMN=includeHTML("<h1>Add Me!</h1>"),
-                    GULN=includeHTML("<h1>Add Me!</h1>"),
-                    MIDN=includeHTML("<h1>Add Me!</h1>"),
+                    ERMN=HTML("<h1>Add Me!</h1>"),
+                    GULN=HTML("<h1>Add Me!</h1>"),
+                    MIDN=HTML("<h1>Add Me!</h1>"),
                     NCRN=includeHTML("./www/ProjectInfo.html"),
-                    NETN=includeHTML("<h1>Add Me!</h1>")
+                    NETN=HTML("<h1>Add Me!</h1>")
 )
 
 Citations<-switch(Network,
-                  ERMN=includeHTML("<h1>Add Me!</h1>"),
-                  GULN=includeHTML("<h1>Add Me!</h1>"),
-                  MIDN=includeHTML("<h1>Add Me!</h1>"),
+                  ERMN=HTML("<h1>Add Me!</h1>"),
+                  GULN=HTML("<h1>Add Me!</h1>"),
+                  MIDN=HTML("<h1>Add Me!</h1>"),
                   NCRN=includeHTML("./www/Citations.html"),
-                  NETN=includeHTML("<h1>Add Me!</h1>")
+                  NETN=HTML("<h1>Add Me!</h1>")
 )
