@@ -42,7 +42,7 @@ shinyServer(function(input,output,session){
     ### Maps
     toggle( id="SpeciesControls" , condition= (input$MapValues=="individual"))
     toggleState( id='MapVisit', condition=( input$MapSpecies!=""))
-    toggle(id="EBirdTitle", condition=(input$MapValues=="individual"))
+    #toggle(id="EBirdTitle", condition=(input$MapValues=="individual"))
     #toggle(id="MapEBird", condition = (input$MapValues=="individual"))
     #toggle(id="MapEBirdDays", condition =(input$MapEBird & input$MapValues=="individual")) 
     onclick(id="AboutMap", expr= toggle(id="AboutMapPanel"))
@@ -449,16 +449,34 @@ observe({
                                   in.style="AOU", out.style = input$TableNames))
   
   
-  #### Band to display in titles and captions ####
+#### Table bands ui ####
   
-  BandOut<-reactive({
-    switch(input$TableBand,
-           "1"="0-50 meters",
-           "2"="0-100 meters",
-           All="any distance")
+  observe({
+    updateSelectizeInput(session, inputId="TableBand", label="Distance from Observer:", 
+                         choices= setNames(getDesign(BirdData[[1]], info="bands")$Band, paste0("0 - ", 
+                         getDesign(BirdData[[1]], info="bands")$MaxDistance, " meters")) )
+  })
+  
+  ## Band to use for table
+  
+  TableBandUse<-reactive({
+    req(input$MapBand)
+    if(input$MapBand=="All") NA else seq(as.numeric(input$MapBand))
   })
   
   
+  
+  #### Band to display in titles and captions #### 
+  # BandOut<-reactive({
+  #   switch(input$TableBand,
+  #          "1"="0-50 meters",
+  #          "2"="0-100 meters",
+  #          All="any distance")
+  # })
+  # 
+  BandOut<-reactive({
+    paste0("0-", getDesign(BirdData[[1]], "bands") %>% filter(Band==input$TableBand) %>% pull(MaxDistance))
+    })
 #### Data, Captons, Titles, for the Tables ####
   
   #### Individual tables, titles, captions, basedata used to calculate other tables ####
@@ -466,7 +484,8 @@ observe({
   IndividualBase<-reactive({
     CountXVisit(object=BirdData,
                 years=input$TableYear2[1]:input$TableYear2[2], 
-                band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)), 
+                # band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)),
+                band=seq(as.numeric(input$TableBand)),
                 AOU=input$TableSpecies)
   })
   
@@ -474,23 +493,31 @@ observe({
     IndividualBase() %>% 
     {if(input$TableZeroHide) filter(.,Visit1 >0 | Visit2 >0) else . } %>% 
       {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>% 
-      rename("Visit 1"= Visit1, "Visit 2"=Visit2) %>% 
+      rename_at(vars(contains("Visit")),~paste0("Visit ",1:getDesign(BirdData[[1]],"visits"))) %>% 
       mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code]) ), "Point Name"=factor(Point_Name) ) %>% 
-      dplyr::select(Park, `Point Name`, Year, `Visit 1`,`Visit 2`)
+      dplyr::select(Park, `Point Name`, Year, contains("Visit"))
   })
   
   IndividualPark<-reactive({
     IndividualBase() %>% 
     group_by(Admin_Unit_Code) %>% 
-    summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
-             "Mean Visit 2"= round( mean(Visit2, na.rm=T),digits=2),
-             "Max Observed"= round(mean(pmax(Visit1, Visit2, na.rm=2)),digits=2)) %>%
-    dplyr::select(`Mean Visit 1`,`Mean Visit 2`,`Max Observed`) %>%
-    rbind(c(IndividualBase() %>% 
-    summarize("Mean Visit 1"=round(mean(Visit1, na.rm=T),digits=2), 
-               "Mean Visit 2"= round(mean(Visit2, na.rm=T),digits=2),
-              "Max Observed"= round(mean(pmax(Visit1, Visit2, na.rm=2)),digits=2)) %>% 
-    dplyr::select(`Mean Visit 1`,`Mean Visit 2`,`Max Observed`) %>% unname()) ) %>% 
+    mutate( "Max Observed"= round(mean(pmax(Visit1, Visit2, na.rm=2)),digits=2)) %>% 
+    group_by(`Max Observed`, add=TRUE) %>% 
+    summarize_at(vars(contains("Visit")), ~round(mean(., na.rm=T), digits=2)) %>% 
+    ungroup() %>% 
+    rename_at(vars(contains("Visit")),~paste0("Mean Visit ",1:getDesign(BirdData[[1]],"visits"))) %>%  
+    group_by(Admin_Unit_Code) %>% 
+    dplyr::select(contains("Mean Visit"),`Max Observed`) %>%
+    rbind(c(
+      IndividualBase() %>%                                                 # This part calculates the "All Parks" data)
+      mutate( "Max Observed"= round(mean(pmax(Visit1, Visit2, na.rm=2)),digits=2)) %>% 
+      group_by(`Max Observed`) %>% 
+      summarize_at(vars(contains("Visit")), ~round(mean(., na.rm=T), digits=2)) %>% 
+      ungroup() %>% 
+      rename_at(vars(contains("Visit")),~paste0("Mean Visit ",1:getDesign(BirdData[[1]],"visits")))
+    ))%>%  
+    ungroup() %>% 
+    dplyr::select(`Mean Visit 1`,`Mean Visit 2`,`Max Observed`) %>% 
     t() %>% "colnames<-"(c(getParkNames(BirdData),"All Parks"))
   })
  

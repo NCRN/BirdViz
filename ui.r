@@ -39,21 +39,24 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
                    selectizeInput(inputId="MapSpecies",choices=NULL,label="Species")), #updated in server.r
           
           tags$div(title="Use common name, Latin name, or American Ornithological Union code",
-                   radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
-          
-          br(),
-          
-          tags$div(title="Choose which year's data to display",
-                   sliderInput(inputId="MapYear", label="Year:", min=Years$Start,max=Years$End, value=Years$End, sep="",step=1, ticks=T)),
-          
-          tags$div(title="Include birds at what distance from the observer?",
-                   selectizeInput(inputId="MapBand", label="Distance from Observer:",
-                                  choices=NULL))# updated in server.r
-          #c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))
+                   radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE))
+
           ),
           
-          tags$div(title="Display bird observations from which visit? ",
-                   selectizeInput(inputId="MapVisit", label="Visit", choices=NULL)), #updated in server.r
+      
+      br(),
+      
+      tags$div(title="Choose which year's data to display",
+               sliderInput(inputId="MapYear", label="Year:", min=Years$Start,max=Years$End, value=Years$End, sep="",step=1, ticks=T)),
+      
+      tags$div(title="Include birds at what distance from the observer?",
+               selectizeInput(inputId="MapBand", label="Distance from Observer:",
+                              choices=NULL)),
+      # updated in server.r
+      #c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))
+      
+      tags$div(title="Display bird observations from which visit? ",
+             selectizeInput(inputId="MapVisit", label="Visit", choices=NULL)), #updated in server.r
       #c("Maximum Observed", "Visit 1", "Visit 2"))),
           
         
@@ -141,9 +144,14 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
                              step=1, ticks=T)),
         
       
+        #tags$div(title="Include birds at what distance from the observer?",
+         #        radioButtons(inputId="TableBand", label="Distance from Observer:",
+          #         choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))),
+        
+        
         tags$div(title="Include birds at what distance from the observer?",
-                 radioButtons(inputId="TableBand", label="Distance from Observer:",
-                   choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))),
+                 selectizeInput(inputId="TableBand", label="Distance from Observer:",
+                                choices=NULL)),
         tags$div(title="Show only the data for points were the bird was detected",
                  checkboxInput(inputId="TableZeroHide", label="Hide points wth no detections", value=FALSE)
         ),
