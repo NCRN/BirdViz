@@ -465,15 +465,7 @@ observe({
   })
   
   
-  
-  #### Band to display in titles and captions #### 
-  # BandOut<-reactive({
-  #   switch(input$TableBand,
-  #          "1"="0-50 meters",
-  #          "2"="0-100 meters",
-  #          All="any distance")
-  # })
-  # 
+
   BandOut<-reactive({
     paste0("0-", getDesign(BirdData[[1]], "bands") %>% filter(Band==input$TableBand) %>% pull(MaxDistance))
     })
@@ -540,7 +532,7 @@ observe({
       getPoints(TableParkUse(),years=input$TableYear) %>% 
         group_by(Point_Name) %>% 
         mutate(Species=birdRichness(TableParkUse(),points=Point_Name, years=input$TableYear,
-                                    band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)))) %>% 
+                                    band=seq(as.numeric(input$TableBand)))) %>% 
         ungroup() %>%
         mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code])), 
                 "Point Name"=factor(Point_Name),
@@ -550,8 +542,8 @@ observe({
   })
   
   RichnessPark<-reactive({
-    data.frame(c(birdRichness(BirdData,years=input$TableYear, band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)),output="list"), 
-                birdRichness(BirdData,years=input$TableYear,band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand))))) %>%
+    data.frame(c(birdRichness(BirdData,years=input$TableYear, band=seq(as.numeric(input$TableBand)),output="list"), 
+                birdRichness(BirdData,years=input$TableYear,band=seq(as.numeric(input$TableBand))))) %>%
     rbind (c(sapply(getPoints(BirdData,years=input$TableYear,output="list"),nrow),
              nrow(getPoints(BirdData,years=input$TableYear)))) %>% 
     "names<-"(c(getParkNames(BirdData),"All Parks")) %>% 
@@ -574,7 +566,7 @@ observe({
   
   BCIBase<-reactive({
     withProgress(message="Calculating...  Please Wait",value=1,{
-     BCI(object=BirdData, years=input$TableYear,band=if(input$TableBand=="All") NA else seq(as.numeric(input$TableBand)))
+     BCI(object=BirdData, years=input$TableYear,band=seq(as.numeric(input$TableBand)))
    })
   })    
 
@@ -730,9 +722,6 @@ observe({
       updateSliderInput(session ,inputId="MapYear", 
                         value=ifelse(input$TableValues %in% c("individual","detects"),PointTableData()[RowSelect,"Year"],input$TableYear  ))
       updateRadioButtons(session, inputId="MapBand",selected=ifelse(input$TableValues=="individual",input$TableBand,"All"))
-      
-
-
       updateSelectizeInput(session, inputId="MapVisit", 
               selected=ifelse(input$TableValues %in% c("individual","detects"), "Maximum Observed", input$MapVisit))
       
