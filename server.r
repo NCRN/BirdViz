@@ -73,10 +73,28 @@ shinyServer(function(input,output,session){
   ##### Set up Map ####
   
   output$BirdMap<-renderLeaflet({
-    leaflet() %>%
+    
+    if(Network == "NCRN"){ 
+      leaflet() %>%
       setView(lng=-77.8,lat=39.03,zoom=9) %>% 
-      setMaxBounds(lng1=-79.5,lng2=-76.1, lat1=37.7, lat2=40.36)
+      setMaxBounds(lng1=-79.5,lng2=-76.1, lat1=37.7, lat2=40.36)}
+    
+    if(Network == "NETN"){ 
+      leaflet() %>%
+      setView(lng=-71.31975,lat= 42.46026,zoom=6) %>% # MIMA, adding 
+        fitBounds(lng1=-73,lng2=-68, lat1=40.5, lat2=44.4)}
+ 
+    # if(Network == "MIDN"){ 
+    #   leaflet() %>%
+    #     setView(lng=-77.6,lat=38.5,zoom=9) %>% 
+    #     setMaxBounds(lng1=-79.9,lng2=-75.2, lat1=36.2, lat2=40.7)}
+    # 
+    # if(Network == "ERMN"){ 
+    #   leaflet() %>%
+    #     setView(lng=-78.5,lat= 39.5,zoom=6) %>% # MIMA, adding 
+    #     fitBounds(lng1=-82.643,lng2=-74.3, lat1=35.5, lat2=43.526)}
   })
+  
   
 
   #### Reactive Map UI Widgets ####
@@ -140,7 +158,7 @@ observe({
   
 #### Zoom Control for Map ####
   output$ParkZoomControl<-renderUI({
-    selectInput(inputId="ParkZoom",label=NULL, choices=c("All Parks"="All", ParkList ) ) 
+    selectInput(inputId="ParkZoom",label=NULL, choices=c(Network, ParkList ) ) 
   })
    
 #### Zoom the map ####
