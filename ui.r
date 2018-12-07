@@ -209,7 +209,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
     column(9,
       tabsetPanel(id="GraphOutputs", type="pills", 
         tabPanel(tags$div(title="Graphs of number of birds observed","Individual Species"), value="Detects",
-           ggvisOutput("DetectsPlot"),
+           plotOutput("DetectsPlot"),
            textOutput("DetectsCaption")
         ),
         tabPanel(tags$div(title="Graphs of number of species found", "Number of Species"), value="Richness",

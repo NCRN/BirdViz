@@ -1,6 +1,6 @@
 #### Network Specific Settings ####
 
-Network<-"NETN"
+Network<-"NCRN"
 
 NetworkURL<-switch(Network,
                    ERMN=, GULN, MIDN=, NCRN=, NETN = paste0('https://science.nature.nps.gov/im/units/',tolower(Network),'/index.cfm')

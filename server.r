@@ -8,6 +8,7 @@ library(DT)
 library(tidyr)
 library(ggvis)
 library(shinyjs)
+library(ggplot2)
 library(jsonlite, pos=100)
 
 
@@ -760,7 +761,7 @@ observe({
   
 ####  Graphs Tab ####
   
-     #### Park control for graphs ####
+#### Park control for graphs ####
   output$ParkPlotSelect<-renderUI({
     selectizeInput(inputId="ParkPlot",label="Park:", choices=c("All Parks"="All", ParkList), selected="All" ) 
   })
@@ -768,49 +769,29 @@ observe({
  PlotParkUse<-reactive({  if (input$ParkPlot=="All") BirdData else BirdData[[input$ParkPlot]] })
  
   
-  BirdPlotNames<-reactive({
+ BirdPlotNames<-reactive({
     BN3<-getChecklist(object =BirdData) #, years=input$TableYear, band=1)
     TempNames3<-getBirdNames(object=BirdData[[1]], names=BN3, in.style="AOU", out.style=input$PlotNames)
     TempNames3[is.na(TempNames3)]<-"Needs Name"
     names(BN3)<-TempNames3
     BN3 [order(TempNames3)]
-  })
+ })
   
   
-  
-  observe({
+ observe({
     updateSelectizeInput(session,inputId="PlotSpecies",label="Species:", choices=BirdPlotNames())
-  })
+ })
   
   
-  PlotBandOut<-reactive({
+ PlotBandOut<-reactive({
     switch(input$PlotBand,
            "1"="0-50 meters",
            "2"="0-100 meters",
            All="any distance")
   })
-  
 
-  DetectsPlotData<-reactive({
-    if(!is.null(input$ParkPlot)){
-    CountXVisit(object=BirdData, 
-               band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)), 
-               AOU=input$PlotSpecies) %>% 
-    { if (input$ParkPlot=="All") . else filter(.,Admin_Unit_Code==input$ParkPlot)} %>% 
-        mutate(Year=factor(Year,labels=paste(paste(c(Years$Start:Years$End), paste0("(",
-                          sapply(X=Years$Start:Years$End,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) %>% 
-    group_by(Year) %>% 
-
-    summarize("Visit 1"=round(mean(Visit1, na.rm=T),digits=2), "Visit 2"= round( mean(Visit2, na.rm=T),digits=2)) %>% 
-    gather(key=Visit, value=Mean, `Visit 1`, `Visit 2`)  
-
-    }
-  })
-
-  
-  DetectsPlotTics<-reactive(levels(DetectsPlotData()$Year))
       
-  RichnessPlotData<-reactive({
+ RichnessPlotData<-reactive({
     if(!is.null(input$ParkPlot)){
     tbl_df(data.frame(Year=Years$Start:Years$End)) %>% 
     group_by(Year) %>% 
@@ -851,7 +832,8 @@ observe({
   PlotBCITitle<-reactive({paste0("Bird Community Index for ",PlotParkName())})
   
   
-  PlotDetectCaption<-reactive({paste0("Average (mean) number of ",PlotBirdName()," detected per point in ",PlotParkName(), " at ", PlotBandOut(),". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis indicates the number of birds deteced divided by the number of points monitored. Additional birds were likely present at the points, but not detected.")})
+  PlotDetectCaption<-reactive({paste0("Average (mean) number of ",PlotBirdName()," detected per point in ",PlotParkName(), 
+                                      " at ", PlotBandOut(),". The vertical axis indicates the number of birds deteced divided by the number of points monitored. Additional birds were likely present at the points, but not detected.")})
   
   PlotRichnessCaption<-reactive({paste0("Number of bird species detected during monitoring in ",PlotParkName()," at ",PlotBandOut(),
             ". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis indicates the number of birds species detected during monitoring. Additional bird species were likely present at the points, but not detected.")})
@@ -859,24 +841,30 @@ observe({
   PlotBCICaption<-reactive({paste0("Bird Community Index (BCI) for ",PlotParkName()," at ", PlotBandOut(),
                                         ". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis shows the BCI, which indicates the conservation status of the bird community. The points on the graph are the average (mean) BCI for all points monitored during each year.")})
   
-    
+#### make Plots ####    
 observe({
   if(!is.null(input$ParkPlot) & input$GraphOutputs=="Detects"){
-    DetectsPlotData %>% 
-        ggvis() %>% 
-        layer_points(x=~Year, y=~Mean, fill= ~Visit , size:=200, opacity:=.66) %>% 
-        add_tooltip(function(x)paste("Year=",x$Year,"<br/>", " Mean Detected =",x$Mean), on="hover" ) %>% 
-        add_axis(type="x",title="Year", title_offset = 65, properties=axis_props(title=list(fontSize=14), labels=list(angle=45, align="left") )) %>% #format="####",
-        #scale_numeric("x", domain=c(2007,2016))%>% 
-        add_axis(type="y",title="Mean # Birds Detected per Point", title_offset=45, 
-                 properties=axis_props(title=list(fontSize=14))) %>% 
-        {if(max(DetectsPlotData()$Mean)==0) scale_numeric(.,"y",domain=c(0,.5)) else .} %>% 
-        add_legend(scales="fill", title="Visit", properties=legend_props(title=list(fontSize=16), labels=list(fontSize=16))) %>% 
-        add_axis("x", orient="top",ticks=0, title=PlotDetectTitle(),  # Annoying hack for plot title
-                 properties=axis_props(axis=list(stroke="white"), ticks=list(stroke="white"),
-                                       labels=list(fontSize=0),title=list(fontSize=24) )) %>% 
-        set_options(width="750px", resizable="TRUE") %>% 
-        bind_shiny("DetectsPlot")
+    # DetectsPlotData %>% 
+    #     ggvis() %>% 
+    #     layer_points(x=~Year, y=~Mean, fill= ~Visit , size:=200, opacity:=.66) %>% 
+    #     add_tooltip(function(x)paste("Year=",x$Year,"<br/>", " Mean Detected =",x$Mean), on="hover" ) %>% 
+    #     add_axis(type="x",title="Year", title_offset = 65, properties=axis_props(title=list(fontSize=14), labels=list(angle=45, align="left") )) %>% #format="####",
+    #     #scale_numeric("x", domain=c(2007,2016))%>% 
+    #     add_axis(type="y",title="Mean # Birds Detected per Point", title_offset=45, 
+    #              properties=axis_props(title=list(fontSize=14))) %>% 
+    #     {if(max(DetectsPlotData()$Mean)==0) scale_numeric(.,"y",domain=c(0,.5)) else .} %>% 
+    #     add_legend(scales="fill", title="Visit", properties=legend_props(title=list(fontSize=16), labels=list(fontSize=16))) %>% 
+    #     add_axis("x", orient="top",ticks=0, title=PlotDetectTitle(),  # Annoying hack for plot title
+    #              properties=axis_props(axis=list(stroke="white"), ticks=list(stroke="white"),
+    #                                    labels=list(fontSize=0),title=list(fontSize=24) )) %>% 
+    #     set_options(width="750px", resizable="TRUE") %>% 
+    #     bind_shiny("DetectsPlot")
+    output$DetectsPlot<-renderPlot(
+      detectsPlot(object=PlotParkUse(),  
+        band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)),
+        AOU=input$PlotSpecies) +
+      ggtitle(PlotDetectTitle())
+    )
   }
 })
 
