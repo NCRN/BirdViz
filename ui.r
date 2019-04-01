@@ -49,7 +49,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
       ),
       
       tags$div(title="Choose which year's data to display",
-               sliderInput(inputId="MapYear", label="Year:", min=Years$Start,max=Years$End, value=Years$End, sep="",step=1, ticks=T)),
+               selectizeInput(inputId="MapYear", label="Year:", selected=Years$End , choices= seq(Years$Start,Years$End,1))),
       hr(),
       tags$div(title="Use common name, Latin name, or American Ornithological Union code",
         radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
