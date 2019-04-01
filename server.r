@@ -74,8 +74,11 @@ shinyServer(function(input,output,session){
   
   output$BirdMap<-renderLeaflet({
     leaflet() %>%
-      setView(lng=-77.8,lat=39.03,zoom=9) %>% 
-      setMaxBounds(lng1=-79.5,lng2=-76.1, lat1=37.7, lat2=40.36)
+      setView(lng=mean(c(ParkBounds[ParkBounds$ParkCode==Network,]$LongE,ParkBounds[ParkBounds$ParkCode==Network,]$LongW)),
+              lat=mean(c(ParkBounds[ParkBounds$ParkCode==Network,]$LatN,ParkBounds[ParkBounds$ParkCode==Network,]$LatS)),
+              zoom=8 ) %>%
+      setMaxBounds(lng1=ParkBounds[ParkBounds$ParkCode==Network,]$LongE,lng2=ParkBounds[ParkBounds$ParkCode==Network,]$LongW,
+                   lat1=ParkBounds[ParkBounds$ParkCode==Network,]$LatN, lat2=ParkBounds[ParkBounds$ParkCode==Network,]$LatS)
   })
   
 
@@ -140,7 +143,8 @@ observe({
   
 #### Zoom Control for Map ####
   output$ParkZoomControl<-renderUI({
-    selectInput(inputId="ParkZoom",label=NULL, choices=c("All Parks"="All", ParkList ) ) 
+    selectInput(inputId="ParkZoom",label=NULL,selectize=FALSE,
+                choices=c("All Parks"=Network,ParkList))
   })
    
 #### Zoom the map ####
@@ -742,46 +746,46 @@ observe({
 
   DetectsPlotData<-reactive({
     if(!is.null(input$ParkPlot)){
-    CountXVisit(object=BirdData, 
-               band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)), 
-               AOU=input$PlotSpecies) %>% 
-    { if (input$ParkPlot=="All") . else filter(.,Admin_Unit_Code==input$ParkPlot)} %>% 
-        mutate(Year=factor(Year,labels=paste(paste(c(2007:2017), paste0("(",
-                          sapply(X=2007:2017,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) %>% 
-    group_by(Year) %>% 
-
-    summarize("Visit 1"=round(mean(Visit1, na.rm=T),digits=2), "Visit 2"= round( mean(Visit2, na.rm=T),digits=2)) %>% 
-    gather(key=Visit, value=Mean, `Visit 1`, `Visit 2`)  
-
+      CountXVisit(object=BirdData, 
+                  band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)), 
+                  AOU=input$PlotSpecies) %>% 
+                  { if (input$ParkPlot=="All") . else filter(.,Admin_Unit_Code==input$ParkPlot)} %>% 
+        mutate(Year=factor(Year,labels=paste(paste(c(Years$Start:Years$End), paste0("(",
+                    sapply(X=Years$Start:Years$End,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) %>% 
+        group_by(Year) %>% 
+        
+        summarize("Visit 1"=round(mean(Visit1, na.rm=T),digits=2), "Visit 2"= round( mean(Visit2, na.rm=T),digits=2)) %>% 
+        gather(key=Visit, value=Mean, `Visit 1`, `Visit 2`)  
+      
     }
   })
 
       
   RichnessPlotData<-reactive({
     if(!is.null(input$ParkPlot)){
-    tbl_df(data.frame(Year=2007:2017)) %>% 
-    group_by(Year) %>% 
-    mutate(Species=birdRichness(object=PlotParkUse(), years=Year,
-                          band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand))) ) %>% 
-    ungroup() %>% 
-    mutate(Year=factor(Year,labels=paste(paste(c(2007:2017), paste0("(",
-          sapply(X=2007:2017,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) 
+      tbl_df(data.frame(Year=Years$Start:Years$End)) %>% 
+        group_by(Year) %>% 
+        mutate(Species=birdRichness(object=PlotParkUse(), years=Year,
+                                    band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand))) ) %>% 
+        ungroup() %>% 
+        mutate(Year=factor(Year,labels=paste(paste(c(Years$Start:Years$End), paste0("(",
+             sapply(X=Years$Start:Years$End,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")"))))) 
     }
-  })  
+  })   
   
   BCIPlotData<-reactive({
     withProgress(message="Calculating...  Please Wait",value=1,{
-        tbl_df(data.frame(Year=2007:2017)) %>% 
+      tbl_df(data.frame(Year=Years$Start:Years$End)) %>% 
         group_by(Year) %>% 
         mutate(BCI=BCI(object=PlotParkUse(), years=Year,
-              band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)))[["BCI"]] %>% mean(na.rm=T) %>% 
-                round(digits=1),
+                       band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)))[["BCI"]] %>% mean(na.rm=T) %>% 
+                 round(digits=1),
                "BCI Category"=c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")[findInterval(BCI,
-             vec=c(0,40.1,52.1,60.1,77.1))]
+                          vec=c(0,40.1,52.1,60.1,77.1))]
         ) %>% 
         ungroup() %>% 
-        mutate(Year=factor(Year,labels=paste(paste(c(2007:2017), paste0("(",
-            sapply(X=2007:2017,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")")))))
+        mutate(Year=factor(Year,labels=paste(paste(c(Years$Start:Years$End), paste0("(",
+              sapply(X=Years$Start:Years$End,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")")))))
     })
   })
 
