@@ -100,7 +100,7 @@ shinyServer(function(input,output,session){
     isolate(
       updateSelectizeInput(session,inputId="MapSpecies",label="Species", choices=c(BirdNames()),
                            options = list(placeholder='Choose a species'),server = FALSE,
-                           selected="AMRO")#if(!input$MapSpecies==""){input$MapSpecies}
+                           selected="AMRO") #if(!input$MapSpecies==""){input$MapSpecies}
     )
   })
   
@@ -701,20 +701,17 @@ shinyServer(function(input,output,session){
           )
         )
     })
-  
-  
-  
-  
+ 
   
   ####  Graphs Tab ####
-  
-  
+
   #### Park control for graphs ####
   output$ParkPlotSelect<-renderUI({
     selectizeInput(inputId="ParkPlot",label="Park:", choices=c("All Parks"="All", ParkList), selected="All" ) 
   })
   
   PlotParkUse<-reactive({  if (input$ParkPlot=="All") BirdData else BirdData[[input$ParkPlot]] })
+
   
   BirdPlotNames<-reactive({
     BN3<-getChecklist(object =BirdData) #, years=input$TableYear, band=1)
@@ -746,8 +743,6 @@ shinyServer(function(input,output,session){
            "2"="0-100 meters",
            All="any distance")
   })
-
-  
 
   
   BCIPlotData<-reactive({
@@ -787,6 +782,7 @@ shinyServer(function(input,output,session){
   PlotBCICaption<-reactive({paste0("Bird Community Index (BCI) for ",PlotParkName()," at ", PlotBandOut(),
                                    ". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis shows the BCI, which indicates the conservation status of the bird community. The points on the graph are the average (mean) BCI for all points monitored during each year.")})
   
+
 # Detects Plot----
   
   observe({
@@ -801,7 +797,7 @@ shinyServer(function(input,output,session){
 
     }
       })
-  
+
   output$DetectsCaption<-renderText({
     validate(
       need( input$PlotSpecies ," "),
@@ -811,7 +807,7 @@ shinyServer(function(input,output,session){
     PlotDetectCaption()
   })
   
-  
+
   # Richness Plot----
 
   observe({
