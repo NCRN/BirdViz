@@ -49,7 +49,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
       ),
       
       tags$div(title="Choose which year's data to display",
-               sliderInput(inputId="MapYear", label="Year:", min=Years$Start,max=Years$End, value=Years$End, sep="",step=1, ticks=T)),
+               selectizeInput(inputId="MapYear", label="Year:", selected=Years$End , choices= seq(Years$Start,Years$End,1))),
       hr(),
       tags$div(title="Use common name, Latin name, or American Ornithological Union code",
         radioButtons(inputId="MapNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
@@ -184,8 +184,9 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
                  selectizeInput(inputId="PlotSpecies",choices=NULL,label="Species")), #updated in server.r
         tags$div(title="Include birds at what distance from the observer?",
                  radioButtons(inputId="PlotBand", label="Distance from Observer:",
-                     choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All")
-        )),
+                     choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))),
+        tags$div(title="Display bird observations from Vist 1, Visit 2, or the maixmum of all ", uiOutput("VisitSelect")),
+        
         tags$div(title="Use commmon name, Latin name, or American Ornithological Union code",
                  radioButtons(inputId="PlotNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), 
                               inline=TRUE)),
@@ -195,11 +196,11 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
     column(9,
       tabsetPanel(id="GraphOutputs", type="pills", 
         tabPanel(tags$div(title="Graphs of number of birds observed","Individual Species"), value="Detects",
-           ggvisOutput("DetectsPlot"),
+          plotOutput("DetectsPlot"),
            textOutput("DetectsCaption")
         ),
         tabPanel(tags$div(title="Graphs of number of species found", "Number of Species"), value="Richness",
-          ggvisOutput("RichnessPlot"),
+                 plotOutput("RichnessPlot"),
           textOutput("RichnessCaption")
         ),
         tabPanel(tags$div(title= "Graphs of Bird Community Index values","Bird Community Index"), value="BCI",
