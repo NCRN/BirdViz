@@ -198,12 +198,14 @@ shinyServer(function(input,output,session){
            richness="# of Species",
            individual={
              req(input$MapSpecies)
-             Part1<-paste0(getBirdNames(object=BirdData[[1]], names =  input$MapSpecies, in.style="AOU", 
-                                        out.style = input$MapNames), "s<br>Detected")
-             Part2<-paste0("<br><svg height='15' width='20'> <circle cx='10' cy='10' r='5', stroke='black' fill='black'/>
-                           </svg> NPS Data<br> <svg height='15' width='20'> <circle cx='10' cy='10' r='5' stroke='black' 
-                           fill='transparent'/></svg> eBird Data")
-             if(input$MapEBird) paste0(Part1, Part2) else Part1},
+             #Part1<-
+               paste0(getBirdNames(object=BirdData[[1]], names =  input$MapSpecies, in.style="AOU", 
+                                        out.style = input$MapNames), "s<br>Detected") },
+               
+             # Part2<-paste0("<br><svg height='15' width='20'> <circle cx='10' cy='10' r='5', stroke='black' fill='black'/>
+             #               </svg> NPS Data<br> <svg height='15' width='20'> <circle cx='10' cy='10' r='5' stroke='black' 
+             #               fill='transparent'/></svg> eBird Data")
+             # if(input$MapEBird) paste0(Part1, Part2) else Part1},
            bci="Bird Community Index")
   })
   
@@ -222,12 +224,12 @@ shinyServer(function(input,output,session){
   
   #### Figure out values for Map legend ####
   LegendValues<-reactive({
-    
-    if(!input$MapEBird) unique(circleData()$Values) else{
-      TempValues<-unique(c(circleData()$Values,EBirdData()$howMany))  
-      TempValues[TempValues>8]<-"9+"
-      return(TempValues)
-    }
+    unique(circleData()$Values)
+    # if(!input$MapEBird) unique(circleData()$Values) else{
+    #   TempValues<-unique(c(circleData()$Values,EBirdData()$howMany))  
+    #   TempValues[TempValues>8]<-"9+"
+    #   return(TempValues)
+    # }
   })
   
   #### Add Legend ####
@@ -350,35 +352,35 @@ shinyServer(function(input,output,session){
   })
   
   #### Get ebird data ####
-  EBirdName<-reactive({getBirdNames(object=BirdData[[1]], names=input$MapSpecies, in.style="AOU", out.style="Latin")})
-  
-  EBirdGet<-function(Species,State,Days){           ### Get data from EBird
-    tryCatch(                                       ### tryCatch is for when our name aren't in ebird (e.g. "unidentified bird")
-      fromJSON(URLencode(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-",State,"&sci=",
-                                Species,"&back=",Days,"&fmt=json"))),
-      error=function(cond){return(list())}
-    )
-  }
-  
-  EBirdData<-reactive({ if(input$MapSpecies!="" & input$MapEBird ){
-    withProgress(message="Downloading ...  Please Wait",value=1,{
-      rbind(EBirdGet(EBirdName(),"DC",input$MapEBirdDays),EBirdGet(EBirdName(),"MD",input$MapEBirdDays),
-            EBirdGet(EBirdName(),"VA",input$MapEBirdDays),EBirdGet(EBirdName(),"WV",input$MapEBirdDays)) %>% 
-            {if(class(.)=="matrix" ) . else filter(.,!is.na(howMany))}
-    })
-  }})
+  # EBirdName<-reactive({getBirdNames(object=BirdData[[1]], names=input$MapSpecies, in.style="AOU", out.style="Latin")})
+  # 
+  # EBirdGet<-function(Species,State,Days){           ### Get data from EBird
+  #   tryCatch(                                       ### tryCatch is for when our name aren't in ebird (e.g. "unidentified bird")
+  #     fromJSON(URLencode(paste0("http://ebird.org/ws1.1/data/obs/region_spp/recent?rtype=subnational1&r=US-",State,"&sci=",
+  #                               Species,"&back=",Days,"&fmt=json"))),
+  #     error=function(cond){return(list())}
+  #   )
+  # }
+  # 
+  # EBirdData<-reactive({ if(input$MapSpecies!="" & input$MapEBird ){
+  #   withProgress(message="Downloading ...  Please Wait",value=1,{
+  #     rbind(EBirdGet(EBirdName(),"DC",input$MapEBirdDays),EBirdGet(EBirdName(),"MD",input$MapEBirdDays),
+  #           EBirdGet(EBirdName(),"VA",input$MapEBirdDays),EBirdGet(EBirdName(),"WV",input$MapEBirdDays)) %>% 
+  #           {if(class(.)=="matrix" ) . else filter(.,!is.na(howMany))}
+  #   })
+  # }})
   
   
   #### add EBird cicles ####
-  observe({ 
-    if(input$MapSpecies!="" & input$MapEBird & class(EBirdData() )=="data.frame" & input$MapValues=="individual"){
-      leafletProxy("BirdMap") %>%  
-        clearGroup("EBird") %>% 
-        addCircles(data=EBirdData(), layerId=rownames(EBirdData()), group="EBird",
-                   color=MapColors()(EBirdData()$howMany),fillColor = 'white',
-                   opacity=1, fillOpacity=0, radius=as.numeric(input$PointSize))             
-    } else {leafletProxy("BirdMap") %>% clearGroup("EBird")}
-  })
+  # observe({ 
+  #   if(input$MapSpecies!="" & input$MapEBird & class(EBirdData() )=="data.frame" & input$MapValues=="individual"){
+  #     leafletProxy("BirdMap") %>%  
+  #       clearGroup("EBird") %>% 
+  #       addCircles(data=EBirdData(), layerId=rownames(EBirdData()), group="EBird",
+  #                  color=MapColors()(EBirdData()$howMany),fillColor = 'white',
+  #                  opacity=1, fillOpacity=0, radius=as.numeric(input$PointSize))             
+  #   } else {leafletProxy("BirdMap") %>% clearGroup("EBird")}
+  # })
   
   #########################################  Data Table Functions  ########################################################
   
