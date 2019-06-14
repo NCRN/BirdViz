@@ -3,6 +3,7 @@ library(leaflet)
 library(NCRNbirds)
 library(dplyr)
 library(magrittr)
+library(purrr)
 library(rgdal)
 library(DT)
 library(tidyr)
@@ -30,7 +31,6 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 shinyServer(function(input,output,session){
   
   #  output$Test<-renderPrint(BoundsUse()[1])
-  
   
   
   #### Toggles ####
@@ -65,25 +65,20 @@ shinyServer(function(input,output,session){
     onclick(id="CloseAboutLists", expr= toggle(id="AboutListsPanel")) 
   })
   
-  
-  ##### Set up Map ####
-  
-  output$BirdMap<-renderLeaflet({
-    leaflet() %>%
-      setView(lng=mean(c(ParkBounds[ParkBounds$ParkCode==Network,]$LongE,ParkBounds[ParkBounds$ParkCode==Network,]$LongW)),
-              lat=mean(c(ParkBounds[ParkBounds$ParkCode==Network,]$LatN,ParkBounds[ParkBounds$ParkCode==Network,]$LatS)),
-              zoom=8 ) %>%
-      setMaxBounds(lng1=ParkBounds[ParkBounds$ParkCode==Network,]$LongE,lng2=ParkBounds[ParkBounds$ParkCode==Network,]$LongW,
-                   lat1=ParkBounds[ParkBounds$ParkCode==Network,]$LatN, lat2=ParkBounds[ParkBounds$ParkCode==Network,]$LatS)
-  })
-  
+  #### Map Panel ####
   
   #### Reactive Map UI Widgets ####
+  ## Visits
+  
+  output$MapVisitSelect<-renderUI({
+    radioButtons(inputId="MapVisit",label="Visit:", choices=c("All",
+                                                              as.character(seq(as.numeric(getDesign(BirdData, info= "visits")[[1]],1)))), selected="All",inline=TRUE ) 
+  })
   
   ## Band to use for map
   
   MapBandUse<-reactive({ if(input$MapBand=="All") NA else seq(as.numeric(input$MapBand)) })
-  
+  MapVisitUse<-reactive({if(input$MapVisit=="All") NA else as.numeric(input$MapVisit)})
   ## List of species for map - needs to be named list.
   BirdNames<-reactive({
     BN<-getChecklist(object =  BirdData,
@@ -104,6 +99,25 @@ shinyServer(function(input,output,session){
     )
   })
   
+  #### Zoom Control for Map ####
+  output$ParkZoomControl<-renderUI({
+    selectInput(inputId="ParkZoom",label=NULL,selectize=FALSE,
+                choices=c("All Parks"=Network,ParkList))
+  })
+  
+  ##### Set up Map ####
+  
+  output$BirdMap<-renderLeaflet({
+    leaflet(BirdData) %>%
+      setView(lng=mean(c(ParkBounds[ParkBounds$ParkCode==Network,]$LongE,ParkBounds[ParkBounds$ParkCode==Network,]$LongW)),
+              lat=mean(c(ParkBounds[ParkBounds$ParkCode==Network,]$LatN,ParkBounds[ParkBounds$ParkCode==Network,]$LatS)),
+              zoom=8 ) %>%
+      setMaxBounds(lng1=ParkBounds[ParkBounds$ParkCode==Network,]$LongE,lng2=ParkBounds[ParkBounds$ParkCode==Network,]$LongW,
+                   lat1=ParkBounds[ParkBounds$ParkCode==Network,]$LatN, lat2=ParkBounds[ParkBounds$ParkCode==Network,]$LatS)
+  })
+  
+
+  
   #### Make map with Base Layer and Layer Controls ####
   
   NPSAttrib<-HTML("&copy; <a href='http://mapbox.com/about/maps' target='_blank'>Mapbox</a> 
@@ -111,19 +125,8 @@ shinyServer(function(input,output,session){
                   <a class='improve-park-tiles' href='http://www.nps.gov/npmap/park-tiles/improve/' 
                   target='_blank'>Improve Park Tiles</a>")
   
-  #### Add point to maps - will not appear correctly if layers are added first for some reason - new issue? ####
-  observe({
-    req(circleData()$Values)
-    
-    input$Layers
-    
-    leafletProxy("BirdMap") %>%
-      clearGroup("Circles") %>%
-      addCircles(data=circleData(), lng=circleData()$Longitude, lat=circleData()$Latitude, layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
-                 fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=as.numeric(input$PointSize), fillOpacity = 1)
-  })
-  
-  
+
+  ## Add tiles
   observe({
     leafletProxy("BirdMap") %>%
       
@@ -137,12 +140,19 @@ shinyServer(function(input,output,session){
       addLayersControl(map=., baseGroups=c("Map","Imagery","Slate"), options=layersControlOptions(collapsed=T))
   })
   
-  #### Zoom Control for Map ####
-  output$ParkZoomControl<-renderUI({
-    selectInput(inputId="ParkZoom",label=NULL,selectize=FALSE,
-                choices=c("All Parks"=Network,ParkList))
+  ## add circles
+  observe({
+    req(circleData()$Values)
+    
+    input$Layers
+    
+    leafletProxy("BirdMap") %>%
+      clearGroup("Circles") %>%
+      addCircles(data=circleData(), lng=circleData()$Longitude, lat=circleData()$Latitude, layerId=circleData()$Point_Name, group="Circles", color=MapColors()(circleData()$Values),
+                 fillColor = MapColors()(circleData()$Values), opacity=0.8, radius=as.numeric(input$PointSize), fillOpacity = 1)
   })
   
+
   #### Zoom the map ####
   observe({
     req(input$Zoom)
@@ -163,31 +173,23 @@ shinyServer(function(input,output,session){
     switch(input$MapValues,
            
            richness={withProgress(message="Calculating...  Please Wait",value=1,
-                                  return(P %>% group_by(Point_Name) %>% 
-                                           mutate(Values=birdRichness(BirdData,points=Point_Name, 
-                                                                      years=input$MapYear,band=MapBandUse()
-                                           ))
-                                  )
-           )},
+                return(P %>% mutate(Values=map_dbl(P$Point_Name, .f=~birdRichness(BirdData, years=input$MapYear, band=MapBandUse(), 
+                      visits= MapVisitUse(),points = .x)) )
+           ))},
            
            individual={
              req(MapBandUse() | is.na(MapBandUse()) ) # needed as NA indicates "any distace" here.
-             X<-CountXVisit(object=BirdData,years=input$MapYear,AOU=input$MapSpecies, band=MapBandUse() )
-             switch(input$SpeciesValues,
-                    "Visit 1"={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit1) %>% 
-                                                        rename(Values=Visit1) ) )},
-                    "Visit 2" ={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit2) %>% 
-                                                         rename(Values=Visit2) ) )},
-                    "Maximum Observed"={return(P %>% left_join(X %>% dplyr::select(Point_Name,Visit1,Visit2) %>% 
-                                                                 transmute(Point_Name=Point_Name,Values=pmax(Visit1,Visit2,na.rm=TRUE) ) ))}
-             )
+             req(input$MapVisit)
+             X<-CountXVisit(object=BirdData,years=input$MapYear,AOU=input$MapSpecies, band=MapBandUse(), visits=MapVisitUse(), 
+                                                                                              max=(input$MapVisit=="All") )
+             if(input$MapVisit=="All") return(P %>% left_join(X %>% dplyr::select(Point_Name,Max) %>% rename(Values=Max))) else{
+               return(P %>% left_join(X %>% dplyr::select(Point_Name,starts_with("Visit")) %>% rename(Values=2) ))
+             }
            },
            bci={withProgress(message="Calculating...  Please Wait",value=1,
-                             return(P %>% left_join(BCI(object=BirdData, years=input$MapYear,points=P$Point_Name,
-                                                        band=MapBandUse()  ) %>% 
-                                                      mutate(Values=factor(BCI_Category, 
-                                                                           levels=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))) %>% 
-                                                      dplyr::select(Point_Name,BCI,Values) )  )
+              return(P %>% left_join(BCI(object=BirdData, years=input$MapYear,points=P$Point_Name, band=MapBandUse(), visits=MapVisitUse()) %>% 
+                mutate(Values=factor(BCI_Category, levels=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))) %>% 
+                dplyr::select(Point_Name,BCI,Values) )  )
            )}
     )
   })
@@ -241,38 +243,29 @@ shinyServer(function(input,output,session){
                 na.label="Not Visited", title=circleLegend(), className="panel panel-default info legend" )
   })
   
-  #### User Clicks on map not on a shape - popups close ####
-  
-  observeEvent(input$BirdMap_click, {
-    leafletProxy("BirdMap") %>% 
-      clearPopups()
-  })
-  
-  
-  
-  #### Popup for user hoverin on a circle ####
-  observeEvent(input$BirdMap_shape_mouseover, {  
-    
+  #### Popup for user hovering on a circle ####
+  observeEvent(input$BirdMap_shape_mouseover, {
+
     ShapeOver<-input$BirdMap_shape_mouseover
-    
-    
-    leafletProxy("BirdMap") %>% 
-      clearPopups() %>% {
+
+
+    leafletProxy("BirdMap") %>% {
+     # clearPopups() %>% {
         switch(ShapeOver$group,
                Circles= addPopups(map=.,lat=ShapeOver$lat+.001, lng=ShapeOver$lng, layerId="MouseOverPopup",
                                   popup=switch(input$MapValues,
                                                richness=paste0(ShapeOver$id, ': ',circleData()[circleData()$Point_Name==ShapeOver$id,]$Values, " Species"),
-                                               
+
                                                individual=paste(collapse="<br/>", paste(ShapeOver$id,"<br/>"),
                                                                 paste(circleData()[circleData()$Point_Name==ShapeOver$id,]$Values,"detected", collapse=" ")),
-                                               
+
                                                bci=paste(sep="<br/>", ShapeOver$id, paste0('BCI Value: ',circleData()[circleData()$Point_Name==ShapeOver$id,]$BCI),
                                                          paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeOver$id,]$Values) )
                                   )
-               ),
-               EBird=addPopups(map=., lat=ShapeOver$lat+.001, lng=ShapeOver$lng, layerId="MouseOverPopup",
-                               popup=paste0(EBirdData()[ShapeOver$id,"locName"],"<br>", EBirdData()[ShapeOver$id,"howMany"],
-                                            " detected<br>",EBirdData()[ShapeOver$id,"obsDt"]))
+               )#,
+               # EBird=addPopups(map=., lat=ShapeOver$lat+.001, lng=ShapeOver$lng, layerId="MouseOverPopup",
+               #                 popup=paste0(EBirdData()[ShapeOver$id,"locName"],"<br>", EBirdData()[ShapeOver$id,"howMany"],
+               #                              " detected<br>",EBirdData()[ShapeOver$id,"obsDt"]))
         )}
   })
   
@@ -281,43 +274,42 @@ shinyServer(function(input,output,session){
     Sys.sleep(0.1)
     leafletProxy("BirdMap") %>% removePopup(layerId="MouseOverPopup")
   })
+
   
   #### Popup for user clicking on a shape ####
   observeEvent(input$BirdMap_shape_click, {  
-    
+  
     ShapeClick<-input$BirdMap_shape_click
-    
-    
+    output$Test<-renderText(class(ShapeClick$lat))
+     
     leafletProxy("BirdMap") %>% 
       clearPopups() %>% {
         switch(ShapeClick$group,
-               Circles= addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, 
-                                  popup=switch(input$MapValues,
+          Circles= addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, 
+            popup=switch(input$MapValues,
+            
+              richness=  paste(collapse="<br/>",
+                paste(ShapeClick$id, ':',circleData()[circleData()$Point_Name==ShapeClick$id,]$Values, "Species","<br/>","<br/>",collapse=" "),
+                paste(getChecklist(BirdData,points=ShapeClick$id, years=input$MapYear,band=MapBandUse(),visit=MapVisitUse(), 
+                                   out.style=input$MapNames),collapse="<br/>") ),
+                                                 
+                individual=paste(collapse="<br/>", 
+                  paste(ShapeClick$id,"<br/>"),
+                  paste(circleData()[circleData()$Point_Name==ShapeClick$id,]$Values,"detected", collapse=" ")),
                                                
-                                               richness=  paste(collapse="<br/>",
-                                                                paste(ShapeClick$id, ':',circleData()[circleData()$Point_Name==ShapeClick$id,]$Values, 
-                                                                      "Species","<br/>","<br/>",collapse=" "),
-                                                                paste(getChecklist(BirdData,points=ShapeClick$id, years=input$MapYear,band=MapBandUse(), out.style=input$MapNames),collapse="<br/>") ),
-                                               
-                                               individual=paste(collapse="<br/>", 
-                                                                paste(ShapeClick$id,"<br/>"),
-                                                                paste(circleData()[circleData()$Point_Name==ShapeClick$id,]$Values,"detected", collapse=" ")),
-                                               
-                                               bci=paste(sep="<br/>", ShapeClick$id, paste0('BCI Value: ',circleData()[circleData()$Point_Name==ShapeClick$id,]$BCI),
-                                                         paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeClick$id,]$Values) )
-                                  )
-               ),
-               Ecoregions=, Forested=,addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
-               #Forested=addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id),
-               EBird=addPopups(map=., lat=ShapeClick$lat, lng=ShapeClick$lng, 
-                               popup=paste0(EBirdData()[ShapeClick$id,"locName"],"<br>", EBirdData()[ShapeClick$id,"howMany"],
-                                            " detected<br>",EBirdData()[ShapeClick$id,"obsDt"]))
-        )}
+                  bci=paste(sep="<br/>", ShapeClick$id,paste0('BCI Value: ',circleData()[circleData()$Point_Name==ShapeClick$id,]$BCI),
+                     paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeClick$id,]$Values) )
+              )
+            ),
+            Ecoregions=, Forested=,addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id)
+                # EBird=addPopups(map=., lat=ShapeClick$lat, lng=ShapeClick$lng, 
+                #                 popup=paste0(EBirdData()[ShapeClick$id,"locName"],"<br>", EBirdData()[ShapeClick$id,"howMany"],
+                #                              " detected<br>",EBirdData()[ShapeClick$id,"obsDt"]))
+    )}
   })
   
+  
   #### Add additional layers ####
-  
-  
   withProgress(message="Loading ...  Please Wait",value=1,{
     Ecoregion<-readOGR(dsn="./Maps/Ecoregion.geojson",encoding="OGRGeoJSON")
     Forested<-readOGR(dsn="./Maps/Forests.geojson",encoding="OGRGeoJSON")
@@ -712,9 +704,25 @@ shinyServer(function(input,output,session){
     selectizeInput(inputId="ParkPlot",label="Park:", choices=c("All Parks"="All", ParkList), selected="All" ) 
   })
   
-  PlotParkUse<-reactive({  if (input$ParkPlot=="All") BirdData else BirdData[[input$ParkPlot]] })
-
   
+  output$VisitSelect<-renderUI({
+    req(input$ParkPlot)
+    radioButtons(inputId="PlotVisit",label="Visit:", choices=c("All",
+       as.character(seq(as.numeric(getDesign(PlotParkUse(), info= "visits")[[1]],1)))), selected="All",inline=TRUE ) 
+  })
+  
+
+  PlotParkUse<-reactive({  if (input$ParkPlot=="All") BirdData else BirdData[[input$ParkPlot]] })
+  PlotBandUse<-reactive({ if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)) })
+  PlotVisitUse<-reactive({ if(input$PlotVisit=="All") NA else as.numeric(input$PlotVisit)})
+   
+   PlotBandOut<-reactive({
+     switch(input$PlotBand,
+            "1"="0-50 meters",
+            "2"="0-100 meters",
+            All="any distance")
+   })
+   
   BirdPlotNames<-reactive({
     BN3<-getChecklist(object =BirdData) #, years=input$TableYear, band=1)
     TempNames3<-getBirdNames(object=BirdData[[1]], names=BN3, in.style="AOU", out.style=input$PlotNames)
@@ -724,35 +732,15 @@ shinyServer(function(input,output,session){
   })
   
   
-  
   observe({
     updateSelectizeInput(session,inputId="PlotSpecies",label="Species:", choices=BirdPlotNames(),selected ="AMRO")
-    
   })
-  
-  # create pick list of the visit number to pass to plotting functions
-  
-  output$VisitSelect<-renderUI({
-    radioButtons(inputId="visitnumb",label="Visit:", choices=c("All",
-          as.character(seq(as.numeric(getDesign(PlotParkUse(), info= "visits")[[1]],1)))), selected="All",inline=TRUE ) 
-  })
-  
-  
-  
-  PlotBandOut<-reactive({
-    switch(input$PlotBand,
-           "1"="0-50 meters",
-           "2"="0-100 meters",
-           All="any distance")
-  })
-
   
   BCIPlotData<-reactive({
     withProgress(message="Calculating...  Please Wait",value=1,{
       tbl_df(data.frame(Year=Years$Start:Years$End)) %>% 
         group_by(Year) %>% 
-        mutate(BCI=BCI(object=PlotParkUse(), years=Year,
-                       band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)))[["BCI"]] %>% mean(na.rm=T) %>% 
+        mutate(BCI=BCI(object=PlotParkUse(), years=Year, visits=PlotVisitUse(), band=PlotBandUse() )[["BCI"]] %>% mean(na.rm=T) %>% 
                  round(digits=1),
                "BCI Category"=c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")[findInterval(BCI,
                        vec=c(0,40.1,52.1,60.1,77.1))]
@@ -789,41 +777,31 @@ shinyServer(function(input,output,session){
   
   observe({
     if(!is.null(input$ParkPlot) & input$GraphOutputs=="Detects"){
-      
-  output$DetectsPlot <- renderPlot({
-      detectsPlot(object= PlotParkUse(), 
-                  band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)), 
-                  AOU=input$PlotSpecies, visits = if(input$visitnumb=="All") NA else input$visitnumb, 
-                  plot_title = "")}
-  )
-
-    }
-      })
+      output$DetectsPlot <- renderPlot({
+        detectsPlot(object= PlotParkUse(),band=PlotBandUse(),AOU=input$PlotSpecies, visits =PlotVisitUse(), plot_title = "")
+    })}
+  })
 
   output$DetectsCaption<-renderText({
     validate(
       need( input$PlotSpecies ," "),
       need( input$ParkPlot , " "),
-      need( input$PlotBand," ")
+      need( input$PlotBand," "),
+      need( input$PlotVisit, " ")
     )
     PlotDetectCaption()
   })
   
 
-  # Richness Plot----
+  ## Richness Plot
 
   observe({
     if(!is.null(input$ParkPlot)& input$GraphOutputs=="Richness"){
-      
       output$RichnessPlot <- renderPlot({
-        richnessPlot(object= PlotParkUse(),
-                    band=if(input$PlotBand=="All") NA else seq(as.numeric(input$PlotBand)), 
-                    visits = if(input$visitnumb=="All") NA else input$visitnumb, plot_title = "")}
-      )
-      
+        richnessPlot(object= PlotParkUse(), band=PlotBandUse(), visits=PlotVisitUse(), plot_title = "")
+      })
     }
   })
-
   
   output$RichnessCaption<-renderText({
     validate(

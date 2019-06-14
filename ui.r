@@ -49,9 +49,8 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
                selectizeInput(inputId="MapBand", label="Distance from Observer:",
                               choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))
       ),
-      tags$div(title="Display bird observations from Vist 1, Visit 2, or the maixmum of the two ",
-               selectizeInput(inputId="SpeciesValues", label="Visit", choices=c("Maximum Observed", "Visit 1", "Visit 2"))
-      ),
+
+      tags$div(title="Display maximum bird observations across all visits, or observations from a single visit", uiOutput("MapVisitSelect")),
 
       #hr(),
 
