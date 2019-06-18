@@ -18,10 +18,8 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
       
     ),
     
-    
     fluidRow(
       column(2, style="padding: 0 0 0 10px",
-      
     
      #### Map Controls Box ####
     
@@ -45,23 +43,11 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
       tags$div(title="Choose which year's data to display",
                selectizeInput(inputId="MapYear", label="Year:", selected=Years$End , choices= seq(Years$Start,Years$End,1))
       ),
-      tags$div(title="Include birds at what distance from the observer?",
-               selectizeInput(inputId="MapBand", label="Distance from Observer:",
-                              choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))
-      ),
+      tags$div(title="Include birds at what distance from the observer?", uiOutput("MapBandSelect")),
 
-      tags$div(title="Display maximum bird observations across all visits, or observations from a single visit", uiOutput("MapVisitSelect")),
+      tags$div(title="Display maximum bird observations across all visits, or observations from a single visit", 
+               uiOutput("MapVisitSelect")),
 
-      #hr(),
-
-      #hr(),
-      # h4("eBird Data",class="panel-heading", id="EBirdTitle"),
-      # tags$div(title="Display citizen science from ebird (non-NPS data)",
-      #   checkboxInput(inputId="MapEBird", label="Show recent eBird Data?")),
-      # 
-      # tags$div(title="# of days worth of data to display",
-      # sliderInput(inputId="MapEBirdDays", label= "Display data from how many days prior to today?",min=1,max=30,sep="",value=14 )),
-      # hr(),
       actionButton(inputId="AboutMap", class="btn btn-primary", label="About the map...")),
     
     #### Zoom Box ####
@@ -126,19 +112,19 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
         br(),
         
         tags$div(title="Select a species.",
-                 selectizeInput(inputId="TableSpecies",choices=NULL,label="Species")), #updated in server.r
+          selectizeInput(inputId="TableSpecies",choices=NULL,label="Species")), #updated in server.r
       
         tags$div(title="Select a year.",
-                 sliderInput(inputId="TableYear", label="Year:", min=Years$Start,max=Years$End,value=Years$End, sep="",step=1, ticks=T)),
+          selectizeInput(inputId="TableYear", label="Year:", selected=Years$End , choices= seq(Years$Start,Years$End,1))
+        ),
         
         tags$div(title="Select a range of one or more years.",
-                 sliderInput(inputId="TableYear2", label="Year:", min=Years$Start,max=Years$End,value=c(Years$Start,Years$End), sep="",
-                             step=1, ticks=T)),
+          selectizeInput(inputId="TableYear2", label="Year:", selected=Years$Start:Years$End , 
+                         choices= seq(Years$Start,Years$End,1), multiple=T)
+        ),
         
-      
-        tags$div(title="Include birds at what distance from the observer?",
-                 radioButtons(inputId="TableBand", label="Distance from Observer:",
-                   choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))),
+        tags$div(title="Include birds at what distance from the observer?", uiOutput ("TableBandSelect")),
+        
         tags$div(title="Show only the data for points were the bird was detected",
                  checkboxInput(inputId="TableZeroHide", label="Hide points wth no detections", value=FALSE)
         ),
@@ -183,17 +169,19 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
         tags$div(title="Select a park.",uiOutput("ParkPlotSelect")),
         tags$div(title="Select a species.",
                  selectizeInput(inputId="PlotSpecies",choices=NULL,label="Species")), #updated in server.r
-        tags$div(title="Include birds at what distance from the observer?",
-                 radioButtons(inputId="PlotBand", label="Distance from Observer:",
-                     choices=c("0-50 meters"=1,"0-100 meters"=2,"Any distance"="All"))),
-        tags$div(title="Display bird observations from Vist 1, Visit 2, or the maixmum of all ", uiOutput("VisitSelect")),
         
         tags$div(title="Use commmon name, Latin name, or American Ornithological Union code",
-                 radioButtons(inputId="PlotNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), 
-                              inline=TRUE)),
+          radioButtons(inputId="PlotNames",label="Names:", choices=c("Common"="common","Latin"="Latin","AOU"="AOU"), inline=TRUE)),
+        
+        tags$div(title="Include birds at what distance from the observer?", uiOutput("PlotBandSelect")),
+        
+        tags$div(title="Display maximum bird observations across all visits, or observations from a single visit",
+                 uiOutput("VisitSelect")),
+
         actionButton(inputId="AboutGraphs", class="btn btn-primary", label="About the graphs...")
       )
     ),
+    
     column(9,
       tabsetPanel(id="GraphOutputs", type="pills", 
         tabPanel(tags$div(title="Graphs of number of birds observed","Individual Species"), value="Detects",
