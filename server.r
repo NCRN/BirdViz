@@ -491,9 +491,10 @@ shinyServer(function(input,output,session){
       rbind(round(mean(BCIBase()$BCI),digits=1 )) %>% 
       mutate("Park BCI Category"=
                c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")[findInterval(`Mean BCI`,
-                                                                                                        vec=c(0,40.1,52.1,60.1,77.1))] ) %>% 
-      t() %>% "colnames<-"(c(getParkNames(BirdData),"All Parks") )
-  })
+                                                                  vec=c(0,40.1,52.1,60.1,77.1))] ) %>% 
+      t() %>% 
+      "colnames<-"(c(getParkNames(BirdData)[getParkNames(BirdData,"code") %in% unique(BCIBase()$Admin_Unit_Code)],"All Parks")  )
+  })  #complicated colnames statement covers the case where some park have no data in certain years. 
   
   BCIPointTitle<-reactive(paste0("Bird Community Index by Point: ",input$TableYear))
   
