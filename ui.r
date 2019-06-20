@@ -1,6 +1,5 @@
 library(shiny)
 library(leaflet)
-library(ggvis)
 library(shinyjs)
 
 navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.gif',
@@ -193,7 +192,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
           textOutput("RichnessCaption")
         ),
         tabPanel(tags$div(title= "Graphs of Bird Community Index values","Bird Community Index"), value="BCI",
-          ggvisOutput("BCIPlot"),
+          plotOutput("BCIPlot"),
           textOutput("BCICaption")
         )
       )

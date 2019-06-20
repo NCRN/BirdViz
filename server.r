@@ -7,7 +7,6 @@ library(purrr)
 library(rgdal)
 library(DT)
 library(tidyr)
-library(ggvis)
 library(shinyjs)
 library(jsonlite, pos=100)
 
@@ -747,8 +746,9 @@ shinyServer(function(input,output,session){
     number of birds species detected during monitoring. Additional bird species were likely present at the points, but not detected.")})
   
   observe({
-    if(!is.null(input$ParkPlot)& input$GraphOutputs=="Richness"){
+    if(input$GraphOutputs=="Richness"){
       output$RichnessPlot <- renderPlot({
+        req(input$ParkPlot)
         richnessPlot(object= PlotParkUse(), band=PlotBandUse(), visits=PlotVisitUse(),  plot_title = "")
       })
     }
@@ -773,47 +773,16 @@ shinyServer(function(input,output,session){
     PlotBCICaption()
   }) 
   
-  BCIPlotData<-reactive({
-    withProgress(message="Calculating...  Please Wait",value=1,{
-      tbl_df(data.frame(Year=Years$Start:Years$End)) %>% 
-        group_by(Year) %>% 
-        mutate(BCI=BCI(object=PlotParkUse(), years=Year, visits=PlotVisitUse(), band=PlotBandUse() )[["BCI"]] %>% mean(na.rm=T) %>% 
-                 round(digits=1),
-               "BCI Category"=c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")[findInterval(BCI,
-                       vec=c(0,40.1,52.1,60.1,77.1))]
-        ) %>% 
-        ungroup() %>% 
-        mutate(Year=factor(Year,labels=paste(paste(c(Years$Start:Years$End), paste0("(",
-                 sapply(X=Years$Start:Years$End,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")")))))
-    })
-  })
-
-
   observe({
-    if(!is.null(input$ParkPlot) & input$GraphOutputs=="BCI"){  
-      BCIPlotData %>% 
-        ggvis(x=~Year) %>% 
-        layer_ribbons(y=0, y2 = 40, fill:="red", opacity:=.20) %>%
-        layer_ribbons(y=40, y2 = 52, fill:="orange", opacity:=.20) %>%
-        layer_ribbons(y=52, y2 = 60, fill:="yellow", opacity:=.20) %>%
-        layer_ribbons(y= 60, y2 = 80, fill:="green", opacity:=.20) %>%
-        layer_points(x=~Year,y=~BCI, fill=~`BCI Category`, size:=200, opacity:=.75,stroke="black") %>%
-        scale_nominal("fill", range=c("red","orange","yellow","green"),
-                      domain=c("Low Integrity", "Medium Integrity","High Integrity","Highest Integrity")) %>% 
-        add_tooltip(function(x)paste("Year=",x$Year,"<br/>", "BCI=",x$BCI, "<br/>", x[["BCI Category"]]), on="hover" ) %>% 
-        add_axis(type="x",title="Year") %>% #, format="####"
-        #scale_numeric("x", domain=c(2007,2016),expand=0.008) %>% 
-        add_axis(type="y",title="Bird Community Index (BCI)") %>% 
-        scale_numeric("y",domain=c(0,80),expand=0) %>%
-        add_legend("fill") %>% 
-        hide_legend("stroke") %>% 
-        add_axis("x", orient="top",ticks=0, title=PlotBCITitle(),  # Annoying hack for plot title
-                 properties=axis_props(axis=list(stroke="white"), labels=list(fontSize=0),title=list(fontSize=24) )) %>% 
-        set_options(width="750px", resizable="TRUE") %>% 
-        bind_shiny("BCIPlot")
+    if(input$GraphOutputs=="BCI"){
+      output$BCIPlot <- renderPlot({
+        withProgress(message="Calculating...  Please Wait",value=1,{
+        req(input$ParkPlot)
+        BCIPlot(object= PlotParkUse(), band=PlotBandUse(), visits=PlotVisitUse(), caption=F)
+      })
+      })  
     }
   })
-  
   
   #### Species Lists ####
   
