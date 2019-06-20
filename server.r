@@ -643,8 +643,7 @@ shinyServer(function(input,output,session){
       
       
       #### move to map ####
-      
-      ####START HERE ####
+    
       
       #### Make popup ####
       leafletProxy("BirdMap") %>% clearPopups() %>% 
@@ -711,6 +710,69 @@ shinyServer(function(input,output,session){
     updateSelectizeInput(session,inputId="PlotSpecies",label="Species:", choices=BirdPlotNames(),selected ="AMRO")
   })
   
+  PlotParkName<-reactive(if (input$ParkPlot=="All") paste("All",Network,"Parks") else getParkNames(PlotParkUse(),"short" ))
+  
+  #### Detects Plot ####
+  PlotBirdName<-reactive(getBirdNames(object=BirdData[[1]], names =  input$PlotSpecies, 
+                                      in.style="AOU", out.style = input$PlotNames))
+  
+  PlotDetectTitle<-reactive({paste0(PlotBirdName(),"s Detected per Point in ",PlotParkName() )})  
+  
+  PlotDetectCaption<-reactive({paste0("Average (mean) number of ",PlotBirdName()," detected per point in ",PlotParkName(), " at ", 
+                                      PlotBandOut(),". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical 
+          axis indicates the number of birds deteced divided by the number of points monitored. Additional birds were likely present 
+          at the points, but not detected.")
+  })
+  
+  observe({
+    if(input$GraphOutputs=="Detects"){
+      output$DetectsPlot <- renderPlot({
+        req(input$ParkPlot)
+        detectsPlot(object= PlotParkUse(),band=PlotBandUse(),AOU=input$PlotSpecies, visits =PlotVisitUse(),
+                    max=(input$PlotVisit=="All"), plot_title = "")
+      })}
+  })
+  
+  output$DetectsCaption<-renderText({
+    req(input$PlotSpecies, input$ParkPlot, input$PlotBand, input$PlotVisit)
+    PlotDetectCaption()
+  })
+  
+  #### Richness Plot ####
+  
+  PlotRichnessTitle<-reactive({paste0("Number of Species Detected in ", PlotParkName())})
+  
+  PlotRichnessCaption<-reactive({paste0("Number of bird species detected during monitoring in ",PlotParkName()," at ",PlotBandOut(),
+    ". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis indicates the 
+    number of birds species detected during monitoring. Additional bird species were likely present at the points, but not detected.")})
+  
+  observe({
+    if(!is.null(input$ParkPlot)& input$GraphOutputs=="Richness"){
+      output$RichnessPlot <- renderPlot({
+        richnessPlot(object= PlotParkUse(), band=PlotBandUse(), visits=PlotVisitUse(),  plot_title = "")
+      })
+    }
+  })
+  
+  output$RichnessCaption<-renderText({
+    req(input$PlotSpecies,input$ParkPlot,input$PlotBand)
+    PlotRichnessCaption()
+  })
+  
+  
+  #### BCI Plot ####
+  PlotBCITitle<-reactive({paste0("Bird Community Index for ",PlotParkName())})
+  
+  PlotBCICaption<-reactive({paste0("Bird Community Index (BCI) for ",PlotParkName()," at ", PlotBandOut(),
+      ". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis shows the BCI, 
+      which indicates the conservation status of the bird community. The points on the graph are the average (mean) BCI for all points 
+      monitored during each year.")})
+  
+  output$BCICaption<-renderText({
+    req(input$PlotSpecies,input$ParkPlot,input$PlotBand)
+    PlotBCICaption()
+  }) 
+  
   BCIPlotData<-reactive({
     withProgress(message="Calculating...  Please Wait",value=1,{
       tbl_df(data.frame(Year=Years$Start:Years$End)) %>% 
@@ -725,64 +787,8 @@ shinyServer(function(input,output,session){
                  sapply(X=Years$Start:Years$End,Y=PlotParkUse(),FUN=function(X,Y){nrow(getPoints(Y,years=X))}),")")))))
     })
   })
-  
-  #### Bird name to use for titles and captions ####
-  PlotBirdName<-reactive(getBirdNames(object=BirdData[[1]], names =  input$PlotSpecies, 
-                                      in.style="AOU", out.style = input$PlotNames))
-  PlotParkName<-reactive(if (input$ParkPlot=="All") paste("All",Network,"Parks") else getParkNames(PlotParkUse(),"short" ))
-  
-  
-  PlotDetectTitle<-reactive({paste0(PlotBirdName(),"s Detected per Point in ",PlotParkName() )})
-  
-  PlotRichnessTitle<-reactive({paste0("Number of Species Detected in ", PlotParkName())})
-  
-  PlotBCITitle<-reactive({paste0("Bird Community Index for ",PlotParkName())})
-  
-  
-  PlotDetectCaption<-reactive({paste0("Average (mean) number of ",PlotBirdName()," detected per point in ",PlotParkName(), " at ", 
-          PlotBandOut(),". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical 
-          axis indicates the number of birds deteced divided by the number of points monitored. Additional birds were likely present 
-          at the points, but not detected.")
-  })
-  
-  PlotRichnessCaption<-reactive({paste0("Number of bird species detected during monitoring in ",PlotParkName()," at ",PlotBandOut(),
-                                        ". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis indicates the number of birds species detected during monitoring. Additional bird species were likely present at the points, but not detected.")})
-  
-  PlotBCICaption<-reactive({paste0("Bird Community Index (BCI) for ",PlotParkName()," at ", PlotBandOut(),
-       ". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis shows the BCI, which indicates the conservation status of the bird community. The points on the graph are the average (mean) BCI for all points monitored during each year.")})
-  
 
-# Detects Plot----
-  
-  observe({
-      if(input$GraphOutputs=="Detects"){
-        output$DetectsPlot <- renderPlot({
-          req(input$ParkPlot)
-          detectsPlot(object= PlotParkUse(),band=PlotBandUse(),AOU=input$PlotSpecies, visits =PlotVisitUse(), plot_title = "")
-    })}
-  })
 
-  output$DetectsCaption<-renderText({
-    req(input$PlotSpecies, input$ParkPlot, input$PlotBand, input$PlotVisit)
-    PlotDetectCaption()
-  })
-  
-
-  ## Richness Plot
-
-  observe({
-    if(!is.null(input$ParkPlot)& input$GraphOutputs=="Richness"){
-      output$RichnessPlot <- renderPlot({
-        richnessPlot(object= PlotParkUse(), band=PlotBandUse(), visits=PlotVisitUse(), plot_title = "")
-      })
-    }
-  })
-  
-  output$RichnessCaption<-renderText({
-    req(input$PlotSpecies,input$ParkPlot,input$PlotBand)
-    PlotRichnessCaption()
-  })
-  
   observe({
     if(!is.null(input$ParkPlot) & input$GraphOutputs=="BCI"){  
       BCIPlotData %>% 
@@ -807,11 +813,6 @@ shinyServer(function(input,output,session){
         bind_shiny("BCIPlot")
     }
   })
-  
-  output$BCICaption<-renderText({
-    req(input$PlotSpecies,input$ParkPlot,input$PlotBand)
-    PlotBCICaption()
-  }) 
   
   
   #### Species Lists ####
