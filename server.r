@@ -196,7 +196,7 @@ shinyServer(function(input,output,session){
              }
            },
            bci={withProgress(message="Calculating...  Please Wait",value=1,
-              return(P %>% left_join(BCI(object=BirdData, years=input$MapYear,points=P$Point_Name, band=MapBandUse(), visits=MapVisitUse()) %>% 
+              return(P %>% left_join(BCI(object=BirdData, years=input$MapYear,points=P$Point_Name, band=MapBandUse(), visits=MapVisitUse(),type= {if(Network == "NETN") "NETN_Forest_BCI" else "Cent_App"}) %>% 
                 mutate(Values=factor(BCI_Category, levels=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))) %>% 
                 dplyr::select(Point_Name,BCI,Values) )  )
            )}
@@ -471,7 +471,7 @@ shinyServer(function(input,output,session){
   
   BCIBase<-reactive({
     withProgress(message="Calculating...  Please Wait",value=1,{
-      BCI(object=BirdData, years=input$TableYear ,band=TableBandUse() )
+      BCI(object=BirdData, years=input$TableYear ,band=TableBandUse(), type={if(Network == "NETN") "NETN_Forest_BCI" else "Cent_App"} )
     })
   })    
   
@@ -778,7 +778,7 @@ shinyServer(function(input,output,session){
       output$BCIPlot <- renderPlot({
         withProgress(message="Calculating...  Please Wait",value=1,{
         req(input$ParkPlot)
-        BCIPlot(object= PlotParkUse(), band=PlotBandUse(), visits=PlotVisitUse(), caption=F)
+        BCIPlot(object= PlotParkUse(), band=PlotBandUse(), visits=PlotVisitUse(), caption=F, type={if(Network == "NETN") "NETN_Forest_BCI" else "Cent_App"} )
       })
       })  
     }
