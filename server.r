@@ -294,45 +294,45 @@ shinyServer(function(input,output,session){
                   bci=paste(sep="<br/>", ShapeClick$id,paste0('BCI Value: ',circleData()[circleData()$Point_Name==ShapeClick$id,]$BCI),
                      paste('BCI Category: ', circleData()[circleData()$Point_Name==ShapeClick$id,]$Values) )
               )
-            ),
-            Ecoregions=, Forested=,addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id)
+            )#,
+            #Ecoregions=, Forested=,addPopups(map=.,lat=ShapeClick$lat, lng=ShapeClick$lng, popup=ShapeClick$id)
     )}
   })
   
   
   #### Add additional layers ####
-  withProgress(message="Loading ...  Please Wait",value=1,{
-    Ecoregion<-readOGR(dsn="./Maps/Ecoregion.geojson",encoding="OGRGeoJSON")
-    Forested<-readOGR(dsn="./Maps/Forests.geojson",encoding="OGRGeoJSON")
-  })
-  
-  observe({
-    leafletProxy("BirdMap") %>% {
-      switch(input$Layers,
-             None=clearGroup(.,group=c("Ecoregions","Forested")) %>% removeControl(.,"LayerLegend"),
-             
-             Ecoregions=clearGroup(.,group="Forested") %>%
-               addPolygons(.,data=Ecoregion, group="Ecoregions",layerId=Ecoregion$MapClass, stroke=FALSE,
-                           fillOpacity=.65, color=colorFactor("RdYlBu", levels=Ecoregion$MapClass)(Ecoregion$MapClass)),
-             
-             Forested=clearGroup(.,group="Ecoregions") %>%
-               addPolygons(.,data=Forested, group="Forested", layerId=Forested$MapClass, stroke=FALSE,
-                           fillOpacity=.65, color=colorFactor("Greens",levels=Forested$MapClass)(Forested$MapClass))
-      )}
-  })
+  # withProgress(message="Loading ...  Please Wait",value=1,{
+  #   Ecoregion<-readOGR(dsn="./Maps/Ecoregion.geojson",encoding="OGRGeoJSON")
+  #   Forested<-readOGR(dsn="./Maps/Forests.geojson",encoding="OGRGeoJSON")
+  # })
+  # 
+  # observe({
+  #   leafletProxy("BirdMap") %>% {
+  #     switch(input$Layers,
+  #            None=clearGroup(.,group=c("Ecoregions","Forested")) %>% removeControl(.,"LayerLegend"),
+  #            
+  #            Ecoregions=clearGroup(.,group="Forested") %>%
+  #              addPolygons(.,data=Ecoregion, group="Ecoregions",layerId=Ecoregion$MapClass, stroke=FALSE,
+  #                          fillOpacity=.65, color=colorFactor("RdYlBu", levels=Ecoregion$MapClass)(Ecoregion$MapClass)),
+  #            
+  #            Forested=clearGroup(.,group="Ecoregions") %>%
+  #              addPolygons(.,data=Forested, group="Forested", layerId=Forested$MapClass, stroke=FALSE,
+  #                          fillOpacity=.65, color=colorFactor("Greens",levels=Forested$MapClass)(Forested$MapClass))
+  #     )}
+  # })
   
   #### Add layer legends ####
-  observe({
-    leafletProxy("BirdMap") %>%   
-      removeControl(layerId="LayerLegend") %>%
-      {switch(input$Layers,
-              None=NA,
-              Ecoregions= addLegend(.,title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$MapClass),
-                                    values=Ecoregion$MapClass, layerId="LayerLegend"),
-              Forested= addLegend(.,title="Layer Legend",pal=colorFactor("Greens",levels=Forested$MapClass), values=Forested$MapClass,
-                                  layerId="LayerLegend")
-      )}
-  })
+  # observe({
+  #   leafletProxy("BirdMap") %>%   
+  #     removeControl(layerId="LayerLegend") %>%
+  #     {switch(input$Layers,
+  #             None=NA,
+  #             Ecoregions= addLegend(.,title="Layer Legend",pal=colorFactor("RdYlBu", levels=Ecoregion$MapClass),
+  #                                   values=Ecoregion$MapClass, layerId="LayerLegend"),
+  #             Forested= addLegend(.,title="Layer Legend",pal=colorFactor("Greens",levels=Forested$MapClass), values=Forested$MapClass,
+  #                                 layerId="LayerLegend")
+  #     )}
+  # })
 
   #########################################  Data Table Functions  ########################################################
   

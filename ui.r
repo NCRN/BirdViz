@@ -62,14 +62,14 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
                         radioButtons(inputId="PointSize", label="Point size:", 
                                      choices=c("50m radius"=50, "100m radius"=100), selected="50", inline=TRUE)
                )
-    ),
+    )#,
     ####  Map Layer BoX ####
-    div(class="panel panel-default controls",id="ExtraLayerPanel",
-               h4("Additional Layers", class="panel-heading"),
-               tags$div(title="Add additional informtaion to the parks on the map.",
-                        selectizeInput(inputId="Layers",label=NULL,choices=ExtraLayers)
-               )
-    )
+    # div(class="panel panel-default controls",id="ExtraLayerPanel",
+    #            h4("Additional Layers", class="panel-heading"),
+    #            tags$div(title="Add additional informtaion to the parks on the map.",
+    #                     selectizeInput(inputId="Layers",label=NULL,choices=ExtraLayers)
+    #            )
+    # )
     ), #End code for column on left
   
     column(10, style="padding: 0",
