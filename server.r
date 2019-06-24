@@ -765,9 +765,8 @@ shinyServer(function(input,output,session){
   PlotBCITitle<-reactive({paste0("Bird Community Index for ",PlotParkName())})
   
   PlotBCICaption<-reactive({paste0("Bird Community Index (BCI) for ",PlotParkName()," at ", PlotBandOut(),
-      ". The horizontal axis indicates the year, with the number of points monitored in parenthesis. The vertical axis shows the BCI, 
-      which indicates the conservation status of the bird community. The points on the graph are the average (mean) BCI for all points 
-      monitored during each year.")})
+      ". The horizontal axis indicates the year, with the number of points monitored in parenthesis.  
+      The points on the graph denote the average (mean) BCI for points monitored during each year for the selected visits.")})
   
   output$BCICaption<-renderText({
     req(input$PlotSpecies,input$ParkPlot,input$PlotBand)
