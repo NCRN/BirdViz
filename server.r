@@ -459,7 +459,8 @@ shinyServer(function(input,output,session){
     paste0("Number of Species Detected per Monitoring Point: ",input$TableYear)})
   
   RichnessPointCaption<-reactive({  paste0("The number of different species found at each monitoring point during ", 
-    input$TableYear," based on detections at ", BandOut()," from the observer. Note that monitoring began later at some points than at others.")
+    input$TableYear," based on detections at ", BandOut()," from the observer. Note that monitoring began later at some points 
+    than at others.")
   })
   
   RichnessParkTitle<-reactive({paste0("Number of Species Detected per Park: ",input$TableYear)})
