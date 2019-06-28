@@ -1,6 +1,6 @@
 #### Network Specific Settings ####
 
-Network<-"MIDN"
+Network<-"NCRN"
 
 NetworkURL<-switch(Network,
                    ERMN=, GULN=, MIDN=, NCRN=, NETN = paste0('https://www.nps.gov/im/',tolower(Network),'/index.htm')
