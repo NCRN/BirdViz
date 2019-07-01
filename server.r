@@ -591,8 +591,9 @@ shinyServer(function(input,output,session){
     datatable(
       data=PointTableData(),rownames=F,caption=PointTableCaption(), 
       class="display compact",selection="single", #extensions="TableTools", 
-      options=list(dom = 'T<"clear">lfrtip'
-                   #, tableTools=list(sSwfPath=copySWF('www',pdf=TRUE),aButtons=list('copy','print','csv','pdf'))
+      options=list(dom = 'T<"clear">lfrtip',
+                   lengthMenu=c(10, 25, 100, 250)
+                 #, tableTools=list(sSwfPath=copySWF('www',pdf=TRUE),aButtons=list('copy','print','csv','pdf'))
       )
     ),
     server=F)
@@ -836,6 +837,7 @@ shinyServer(function(input,output,session){
   
   output$SpeciesList<-DT::renderDataTable(server=FALSE,
     datatable(rownames=F,caption="Species List", class="display compact",selection="single",
+              options=list(lengthMenu=c(10, 25, 100, 250)),
       data=switch(input$SpeciesListType,
         All=NPSpeciesList(),
         Points=MonitoringList()
