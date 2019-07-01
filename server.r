@@ -828,8 +828,9 @@ shinyServer(function(input,output,session){
   MonitoringList<-reactive({
     req(input$ParkList)
     tbl_df(data.frame( 'Latin.Name'= getChecklist(object=BirdData[[input$ParkList]], points=ListPoints(),out.style="Latin"))) %>% 
-      mutate('Common Name' = getBirdNames(object=BirdData[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "common")) %>% 
-      rename('Latin Name'= Latin.Name) %>% arrange(`Common Name`) %>%  .[,c(2,1)]
+      mutate('Common Name' = getBirdNames(object=BirdData[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "common"),
+          'AOU Code' = getBirdNames(object=BirdData[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "AOU")) %>% 
+      select(`Common Name`, 'Latin Name'= Latin.Name, `AOU Code`) %>% arrange(`Common Name`) 
   })
   
   
