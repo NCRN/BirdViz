@@ -207,8 +207,11 @@ shinyServer(function(input,output,session){
              }
            },
            bci={withProgress(message="Calculating...  Please Wait",value=1,
-              return(P %>% left_join(BCI(object=BirdData, years=input$MapYear,points=P$Point_Name, band=MapBandUse(), visits=MapVisitUse(),type= {if(Network == "NETN") "NETN_Forest_BCI" else "Cent_Appal"}) %>% 
-                mutate(Values=factor(BCI_Category, levels=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))) %>% 
+              return(P %>% left_join(BCI(object=BirdData, years=input$MapYear,points=P$Point_Name, band=MapBandUse(), 
+                              visits=MapVisitUse(),type= {if(Network == "NETN") "NETN_Forest_BCI" else "Cent_Appal"}) %>% 
+                arrange(BCI_Category) %>% 
+                rename(Values=BCI_Category) %>% 
+                mutate(Values=factor(Values, levels=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))) %>% 
                 dplyr::select(Point_Name,BCI,Values) )  )
            )}
     )
@@ -231,7 +234,7 @@ shinyServer(function(input,output,session){
     switch(input$MapValues,
            richness= colorNumeric(palette="viridis",domain=circleData()$Values, reverse = TRUE),
            individual=colorFactor(palette="viridis", domain=0:8,reverse = TRUE),
-           bci=colorFactor(palette="viridis", reverse = TRUE,
+           bci=colorFactor(palette="BuGn",ordered = TRUE,
                            domain=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))
     )
   })  
