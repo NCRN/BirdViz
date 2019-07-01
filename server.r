@@ -412,10 +412,10 @@ shinyServer(function(input,output,session){
                 summarize_at(vars(starts_with("Visit"), Max), mean, na.rm=T) %>%
                 dplyr::select_at(vars(starts_with("Visit"), Max)))) %>% 
       round(digits=2) %>% 
-      rename_at(vars(starts_with("Visit")),  ~sub("Visit", "Mean Visit ", .x)) %>% 
-      dplyr::select(`Mean Visit 1`,`Mean Visit 2`, Maximum=Max) %>%  
+      rename_at(vars(starts_with("Visit")),  ~sub("Visit", "Mean Visit ", .x)) %>%
+      rename(Maximum=Max) %>% 
       t() %>%
-      "colnames<-"(c(getParkNames(BirdData),"All Parks"))
+      "colnames<-"(c(getParkNames(BirdData)[getParkNames(BirdData,"code") %in% unique(IndividualBase()$Admin_Unit_Code)], "All Parks"))
   })
   
   
@@ -452,8 +452,9 @@ shinyServer(function(input,output,session){
                  birdRichness(BirdData, years=input$TableYear, band=TableBandUse() ))) %>%
       rbind (c(sapply(getPoints(BirdData,years=input$TableYear,output="list"),nrow),
                nrow(getPoints(BirdData,years=input$TableYear)))) %>% 
-      "names<-"(c(getParkNames(BirdData),"All Parks")) %>% 
-      "row.names<-"(c("Species","Monitoring Points"))
+      "colnames<-"(c(getParkNames(BirdData),"All Parks")) %>% 
+      "row.names<-"(c("Species","Monitoring Points")) %>% 
+      select_if(colSums(.)>0) 
   })
   
   RichnessPointTitle<-reactive({
@@ -480,11 +481,12 @@ shinyServer(function(input,output,session){
   BCIPoint<-reactive({
     BCIBase() %>% 
     {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>%
-      dplyr::select(Point_Name,BCI,BCI_Category) %>% 
-      rename("Point Name"=Point_Name, "BCI Category"=BCI_Category)
+      dplyr::select(Admin_Unit_Code, Point_Name,BCI,BCI_Category) %>% 
+      mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code]))) %>% 
+      select(Park, "Point Name"=Point_Name, "BCI Category"=BCI_Category)
   })
-  
-  BCIPark<-reactive({
+
+    BCIPark<-reactive({
     BCIBase() %>% 
       group_by(Admin_Unit_Code) %>% 
       summarize("Mean BCI" = round (mean(BCI), digits=1)) %>%    
