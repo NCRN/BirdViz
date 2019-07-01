@@ -26,7 +26,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
       
       h4("Map Controls",class="panel-heading"),
       
-      textOutput("Test"),
+      #textOutput("Test"),
 
       tags$div(title="Choose the type of data you wish to see",
         selectizeInput(inputId="MapValues", label="Data to Map", choices=c("Individual Species"="individual",
@@ -59,8 +59,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
                ),
                hr(),
                tags$div(title="Increases size of plots for easier viewing",
-                        radioButtons(inputId="PointSize", label="Point size:", 
-                                     choices=c("50m radius"=50, "100m radius"=100), selected="50", inline=TRUE)
+                        uiOutput("MapBandZoomSelect")
                )
     )#,
     ####  Map Layer BoX ####

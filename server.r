@@ -84,6 +84,8 @@ shinyServer(function(input,output,session){
   })
   
   
+  
+  
   ## Values to use for map
   
   MapBandUse<-reactive({seq(as.numeric(input$MapBand)) })# if(input$MapBand=="All") NA else seq(as.numeric(input$MapBand)) })
@@ -113,6 +115,14 @@ shinyServer(function(input,output,session){
   output$ParkZoomControl<-renderUI({
     selectInput(inputId="ParkZoom",label=NULL,selectize=FALSE,
                 choices=c("All Parks"=Network,ParkList))
+  })
+  ## Zoom radius
+  BandZoomChoices<-BandsAvailable$MaxDistance
+  names(BandZoomChoices)<-paste0(BandsAvailable$MaxDistance, " meters")
+  
+  output$MapBandZoomSelect<-renderUI({
+    radioButtons(inputId = "PointSize", label="PointSize", choices=BandZoomChoices, inline=T)
+    
   })
   
   ##### Set up Map ####
