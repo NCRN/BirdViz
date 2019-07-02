@@ -29,8 +29,8 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
       #textOutput("Test"),
 
       tags$div(title="Choose the type of data you wish to see",
-        selectizeInput(inputId="MapValues", label="Data to Map", choices=c("Individual Species"="individual",
-                                      "Number of Species"="richness", "Bird Community Index (BCI)"="bci"))
+        selectizeInput(inputId="MapValues", label="Data to Map", choices=c( "Number of Species"="richness",
+                "Individual Species"="individual","Bird Community Index (BCI)"="bci"))
       ),
       
       div(id="SpeciesControls",
@@ -99,7 +99,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
        
         tags$div(title="Select the type of data you are interested in.",
           radioButtons(inputId="TableValues", label="Type of Data", 
-            choices=c("Individual Species"="individual","Number of Species"="richness", "Bird Community Index (BCI)"="bci"), inline=F)
+            choices=c("Number of Species"="richness","Individual Species"="individual", "Bird Community Index (BCI)"="bci"), inline=F)
         ),
         tags$div(title="Select a park.",uiOutput("ParkTableSelect"))
       ),
@@ -182,13 +182,14 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
     
     column(9,
       tabsetPanel(id="GraphOutputs", type="pills", 
-        tabPanel(tags$div(title="Graphs of number of birds observed","Individual Species"), value="Detects",
-          plotOutput("DetectsPlot"),
-           textOutput("DetectsCaption")
-        ),
+  
         tabPanel(tags$div(title="Graphs of number of species found", "Number of Species"), value="Richness",
                  plotOutput("RichnessPlot"),
           textOutput("RichnessCaption")
+        ),
+        tabPanel(tags$div(title="Graphs of number of birds observed","Individual Species"), value="Detects",
+                 plotOutput("DetectsPlot"),
+                 textOutput("DetectsCaption")
         ),
         tabPanel(tags$div(title= "Graphs of Bird Community Index values","Bird Community Index"), value="BCI",
           plotOutput("BCIPlot"),

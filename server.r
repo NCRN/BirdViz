@@ -189,6 +189,8 @@ shinyServer(function(input,output,session){
   ### based on input$mapvalues, get relevant data and add it to map
   
   circleData<-reactive({
+    req(input$MapValues, input$MapVisit)
+    req(MapBandUse() | is.na(MapBandUse()) ) # needed as NA indicates "any distace" here.
     P<-getPoints(BirdData,years=input$MapYear)
     switch(input$MapValues,
            
@@ -198,8 +200,6 @@ shinyServer(function(input,output,session){
            ))},
            
            individual={
-             req(MapBandUse() | is.na(MapBandUse()) ) # needed as NA indicates "any distace" here.
-             req(input$MapVisit)
              X<-CountXVisit(object=BirdData,years=input$MapYear,AOU=input$MapSpecies, band=MapBandUse(), visits=MapVisitUse(), 
                                                                                               max=(input$MapVisit=="All") )
              if(input$MapVisit=="All") return(P %>% left_join(X %>% dplyr::select(Point_Name,Max) %>% rename(Values=Max))) else{
