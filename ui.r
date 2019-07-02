@@ -26,8 +26,6 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
       
       h4("Map Controls",class="panel-heading"),
       
-      #textOutput("Test"),
-
       tags$div(title="Choose the type of data you wish to see",
         selectizeInput(inputId="MapValues", label="Data to Map", choices=c( "Number of Species"="richness",
                 "Individual Species"="individual","Bird Community Index (BCI)"="bci"))

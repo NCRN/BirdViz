@@ -26,8 +26,7 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
 shinyServer(function(input,output,session){
   
-  #  output$Test<-renderPrint(BoundsUse()[1])
-  
+
   
   #### Toggles ####
   observe({
@@ -71,7 +70,6 @@ shinyServer(function(input,output,session){
       as.character(seq(as.numeric(getDesign(BirdData, info= "visits")[[1]],1)))), selected="All",inline=TRUE ) 
   })
   
-  output$Test<-renderText(MapBandUse())
 
   ##Bands
   BandsAvailable<-getDesign(BirdData, info="bands")[[1]]
@@ -93,9 +91,7 @@ shinyServer(function(input,output,session){
   
   ## List of species for map - needs to be named list.
   BirdNames<-reactive({
-    BN<-getChecklist(object =  BirdData,
-                     #years=input$MapYear,
-                     band=MapBandUse())
+    BN<-getChecklist(object =  BirdData, band=MapBandUse())
     TempNames<-getBirdNames(object=BirdData[[1]], names=BN, in.style="AOU", out.style=input$MapNames)
     TempNames[is.na(TempNames)]<-"Needs Name"
     names(BN)<-TempNames
@@ -106,8 +102,9 @@ shinyServer(function(input,output,session){
     BirdNames()
     isolate(
       updateSelectizeInput(session,inputId="MapSpecies",label="Species", choices=c(BirdNames()),
-                           options = list(placeholder='Choose a species'),server = FALSE,
-                           selected=BirdNames()[1]) 
+                           options = list(placeholder='Choose a species'),
+                           server = FALSE,
+                           selected=if(is.na(input$MapSpecies)) BirdNames()[1] else input$MapSpecies  ) 
     )
   })
   
@@ -288,8 +285,7 @@ shinyServer(function(input,output,session){
   observeEvent(input$BirdMap_shape_click, {  
   
     ShapeClick<-input$BirdMap_shape_click
-    output$Test<-renderText(class(ShapeClick$lat))
-     
+
     leafletProxy("BirdMap") %>% 
       clearPopups() %>% {
         switch(ShapeClick$group,
@@ -359,7 +355,8 @@ shinyServer(function(input,output,session){
   })
   
   
-  TableParkUse<-reactive({ if (input$ParkTable=="All") BirdData else BirdData[input$ParkTable] })  
+  TableParkUse<-reactive({ req(input$ParkTable)
+    if (input$ParkTable=="All") BirdData else BirdData[input$ParkTable] })  
   
   
   output$TableBandSelect<-renderUI({
@@ -379,7 +376,12 @@ shinyServer(function(input,output,session){
   })
   
   observe({
-    updateSelectizeInput(session,inputId="TableSpecies",label="Species", choices=BirdTableNames())
+    BirdTableNames()
+    isolate(
+      updateSelectizeInput(session,inputId="TableSpecies",label="Species", 
+          choices=BirdTableNames(), options = list(placeholder='Choose a species'),
+          selected=if(is.na(input$TableSpecies)) BirdTableNames()[1] else input$TableSpecies)
+    )
   })
   
   
@@ -450,6 +452,7 @@ shinyServer(function(input,output,session){
   ####  Richness tables, titles, captions ####
   
   RichnessPoint<-reactive({
+
     withProgress(message="Calculating...  Please Wait",value=1,{
       getPoints(TableParkUse(),years=input$TableYear) %>% 
         group_by(Point_Name) %>% 
@@ -532,11 +535,9 @@ shinyServer(function(input,output,session){
   ### Point Table title:
   
   output$TableTitle<-renderText({
-    req(IndividualPointTitle())
 
     switch(input$TableValues,
            individual=IndividualPointTitle(),
-           detects=DetectsPointTitle(),
            richness=RichnessPointTitle(),
            bci=BCIPointTitle()
     )
@@ -548,7 +549,6 @@ shinyServer(function(input,output,session){
 
     switch(input$TableValues,
            individual=IndividualPointCaption(),
-           detects=DetectsPointCaption(),
            richness= RichnessPointCaption(),
            bci=BCIPointCaption() 
     )
@@ -557,11 +557,9 @@ shinyServer(function(input,output,session){
   ### Park Table title:
   
   output$ParkTableTitle<-renderText({
-    req(BirdName())
-    
+
     switch(input$TableValues,
            individual=IndividualParkTitle(),
-           detects=DetectsParkTitle(),
            richness=RichnessParkTitle(),
            bci=BCIParkTitle()
     )
@@ -569,11 +567,9 @@ shinyServer(function(input,output,session){
   
   ###Park Table Caption  
   ParkTableCaption<-reactive({
-    req(BirdName()) 
-    
+
     switch(input$TableValues,
            individual=IndividualParkCaption(),
-           detects=DetctsParkCaption(),
            richness=RichnessParkCaption(),
            bci=BCIParkCaption()
     )
@@ -581,21 +577,17 @@ shinyServer(function(input,output,session){
   
   
   PointTableData<-reactive({
-      req(BirdName())
-    
+  req(RichnessPoint())
     switch(input$TableValues,
            individual=IndividualPoint(),
-           detects=DetectsPoint(),
            richness=RichnessPoint(),
            bci=BCIPoint())
   })
   
   ParkTableData<-reactive({
-    req(IndividualPark())
-    
+
     switch(input$TableValues,
            individual=IndividualPark(),
-           detects=DetectsPark(),
            richness=RichnessPark(),
            bci=BCIPark())
   })
@@ -724,7 +716,23 @@ shinyServer(function(input,output,session){
   
   
   observe({
-    updateSelectizeInput(session,inputId="PlotSpecies",label="Species:", choices=BirdPlotNames(),selected ="AMRO")
+    BirdPlotNames()
+    isolate(
+    updateSelectizeInput(session,inputId="PlotSpecies",label="Species:", choices=BirdPlotNames(),
+                         options = list(placeholder='Choose a species'),
+                         selected=if(is.na(input$PlotSpecies)) BirdPlotNames()[1] else input$PlotSpecies)
+    
+    )
+  })
+  
+  
+  observe({
+    BirdTableNames()
+    isolate(
+      updateSelectizeInput(session,inputId="TableSpecies",label="Species", 
+                           choices=BirdTableNames(), options = list(placeholder='Choose a species'),
+                           selected=if(is.na(input$TableSpecies)) BirdTableNames()[1] else input$TableSpecies)
+    )
   })
   
   PlotParkName<-reactive(if (input$ParkPlot=="All") paste("All",Network,"Parks") else getParkNames(PlotParkUse(),"short" ))
@@ -744,7 +752,7 @@ shinyServer(function(input,output,session){
   observe({
     if(input$GraphOutputs=="Detects"){
       output$DetectsPlot <- renderPlot({
-        req(input$ParkPlot)
+        req(input$ParkPlot, input$PlotSpecies)
         detectsPlot(object= PlotParkUse(),band=PlotBandUse(),AOU=input$PlotSpecies, visits =PlotVisitUse(),
                     max=(input$PlotVisit=="All"), plot_title = "")
       })}
