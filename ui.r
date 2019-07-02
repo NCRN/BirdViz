@@ -92,7 +92,6 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
     column(3,
       wellPanel(
         h4(strong("Select Data:")),
-        
         br(),
        
         tags$div(title="Select the type of data you are interested in.",
@@ -108,7 +107,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
         br(),
         
         tags$div(title="Select a species.",
-          selectizeInput(inputId="TableSpecies",choices=NULL,label="Species")), #updated in server.r
+          selectizeInput(inputId="TableSpecies",choices=NULL, label="Species")), #updated in server.r
       
         tags$div(title="Select a year.",
           selectizeInput(inputId="TableYear", label="Year:", selected=Years$End , choices= seq(Years$Start,Years$End,1))

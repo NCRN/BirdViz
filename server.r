@@ -60,6 +60,11 @@ shinyServer(function(input,output,session){
     onclick(id="CloseAboutLists", expr= toggle(id="AboutListsPanel")) 
   })
   
+  
+  #### ReactiveValues
+  
+  RV<-reactiveValues(Map=F, Table=F, Plot=F)
+  
   #### Map Panel ####
   
   #### Reactive Map UI Widgets ####
@@ -97,17 +102,19 @@ shinyServer(function(input,output,session){
     names(BN)<-TempNames
     BN [order(TempNames)]
   })
+  observeEvent(input$MapSpecies, RV$Map<-TRUE, ignoreInit = T)
   
-  observe({
-    BirdNames()
-    isolate(
-      updateSelectizeInput(session,inputId="MapSpecies",label="Species", choices=c(BirdNames()),
-                           options = list(placeholder='Choose a species'),
-                           server = FALSE,
-                           selected=if(is.na(input$MapSpecies)) BirdNames()[1] else input$MapSpecies  ) 
-    )
-  })
+  observeEvent(BirdNames(), 
+               handlerExpr = {
+                 updateSelectizeInput(session,inputId="MapSpecies",label="Species", 
+                                      choices=BirdNames(), options = list(placeholder='Choose a species'),
+                                      selected=if(RV$Map) input$MapSpecies else BirdNames()[1])
+               }
+               
+  )
+
   
+
   #### Zoom Control for Map ####
   output$ParkZoomControl<-renderUI({
     selectInput(inputId="ParkZoom",label=NULL,selectize=FALSE,
@@ -191,10 +198,10 @@ shinyServer(function(input,output,session){
     P<-getPoints(BirdData,years=input$MapYear)
     switch(input$MapValues,
            
-           richness={withProgress(message="Calculating...  Please Wait",value=1,
-                return(P %>% mutate(Values=map_dbl(P$Point_Name, .f=~birdRichness(BirdData, years=input$MapYear, band=MapBandUse(), 
-                      visits= MapVisitUse(),points = .x)) )
-           ))},
+           richness= return(P %>% left_join(birdRichness(BirdData, years=input$MapYear, band=MapBandUse(),
+                                                    visits=MapVisitUse(), byPoint=T) %>% rename(Values=Richness))
+
+           ),
            
            individual={
              X<-CountXVisit(object=BirdData,years=input$MapYear,AOU=input$MapSpecies, band=MapBandUse(), visits=MapVisitUse(), 
@@ -374,15 +381,17 @@ shinyServer(function(input,output,session){
     names(BN2)<-TempNames2
     BN2 [order(TempNames2)]
   })
+
+  observeEvent(input$TableSpecies, RV$Table<-TRUE, ignoreInit = T)
   
-  observe({
-    BirdTableNames()
-    isolate(
+  observeEvent(BirdTableNames(), 
+    handlerExpr = {
       updateSelectizeInput(session,inputId="TableSpecies",label="Species", 
           choices=BirdTableNames(), options = list(placeholder='Choose a species'),
-          selected=if(is.na(input$TableSpecies)) BirdTableNames()[1] else input$TableSpecies)
+          selected=if(RV$Table) input$TableSpecies else BirdTableNames()[1])
+      }
+  
     )
-  })
   
   
   #### Bird name to use for titles and captions ####
@@ -452,15 +461,10 @@ shinyServer(function(input,output,session){
   ####  Richness tables, titles, captions ####
   
   RichnessPoint<-reactive({
-
-    withProgress(message="Calculating...  Please Wait",value=1,{
-      getPoints(TableParkUse(),years=input$TableYear) %>% 
-        group_by(Point_Name) %>% 
-        mutate(Species=birdRichness(TableParkUse(),points=Point_Name, years=input$TableYear, band=TableBandUse() )) %>% 
-        ungroup() %>%
-        mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code])), "Point Name"=factor(Point_Name), Year=input$TableYear) %>% 
-        dplyr::select(Park,`Point Name`, Year, Species )
-    })
+    getPoints(TableParkUse(),years=input$TableYear) %>% 
+    left_join(birdRichness(TableParkUse(),years=input$TableYear, band=TableBandUse(),byPoint=T))  %>% 
+    mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code]))) %>% 
+    dplyr::select(Park,`Point Name`=Point_Name, Species=Richness )
   })
   
   RichnessPark<-reactive({
@@ -715,25 +719,19 @@ shinyServer(function(input,output,session){
   })
   
   
-  observe({
-    BirdPlotNames()
-    isolate(
-    updateSelectizeInput(session,inputId="PlotSpecies",label="Species:", choices=BirdPlotNames(),
-                         options = list(placeholder='Choose a species'),
-                         selected=if(is.na(input$PlotSpecies)) BirdPlotNames()[1] else input$PlotSpecies)
-    
-    )
-  })
   
+  observeEvent(input$PlotSpecies, RV$Plot<-TRUE, ignoreInit = T)
   
-  observe({
-    BirdTableNames()
-    isolate(
-      updateSelectizeInput(session,inputId="TableSpecies",label="Species", 
-                           choices=BirdTableNames(), options = list(placeholder='Choose a species'),
-                           selected=if(is.na(input$TableSpecies)) BirdTableNames()[1] else input$TableSpecies)
-    )
-  })
+  observeEvent(BirdPlotNames(), 
+               handlerExpr = {
+                 updateSelectizeInput(session,inputId="PlotSpecies",label="Species", 
+                                      choices=BirdPlotNames(), options = list(placeholder='Choose a species'),
+                                      selected=if(RV$Plot) input$PlotSpecies else BirdPlotNames()[1])
+               }
+               
+  )
+  
+
   
   PlotParkName<-reactive(if (input$ParkPlot=="All") paste("All",Network,"Parks") else getParkNames(PlotParkUse(),"short" ))
   
