@@ -4,62 +4,51 @@
   </head>
   <body>
       <div style="margin-left: 20px; font-size: 16">
-      <p>This map displays the results of an ongoing forest bird monitoring program conducted by the National Park Service in eleven parks in the Washington DC area. Each circle indicates the location of a bird monitoring point. Hovering over and/or clicking on a circle will produce a popup with additional information. For detail on monitoring methods, select "Project Information" from the "About" tab.</p>
-      
+      <p>This map displays results of an ongoing breeding landbird monitoring program conducted by the National Park Service's Inventory and Monitoring Program. Each circle indicates the location of a permanent monitoring point where the bird community is sampled using standardized “point counts”. Hovering over and/or clicking on a circle will produce a popup with additional information. For detail on monitoring methods, select "Project Information" from the "About the Project" tab.</p>
+
   <h4> Base Map </h4>
-    <p>You can different base map using the controls in the upper right.</p>
+    <p>You can select different base maps using the controls in the upper right.</p>
       <ul>
-        <li><strong>Map: </strong>The default, a street map with parks marked in green.</li>
-        <li><strong>Imagery</strong>Satellite imagery with parks outlined in green. </li>
-        <li><strong>Slate</strong>Similar to the street map but specifically tailored for low vision users. </li>
+        <li><strong>Map: </strong>displays the NPS Park Tiles Standard OSM base map and is the default map with parks marked in green.</li>
+        <li><strong>Imagery: </strong>displays the NPS Park Tiles satellite imagery with parks outlined in green. </li>
+        <li><strong>Slate: </strong>displays the NPS Park Tiles Slate OSM base map which is similar to the default map but specifically tailored for low vision users. </li>
       </ul>
-  
-  <br>
-            
+
+
       <h4>Map Controls</h4>
-      <strong>Data to map: </strong>
+      <strong>Data to Map: </strong>
       This allows you to toggle between different types of data to display on the map. These include:
       <ul>
-      <li><strong>Individual Species: </strong>This indicates how many individuals of a given species were observed at each monitoring point during a given year.</li>
-      <li><strong>Number of Species: </strong> This is the number of species observed at monitoring point during a given year. Clicking on a point will give you the full species list for that point.  </li>
-      <li><strong>Bird Community Index (BCI): </strong> This is an index that indicates if the bird community has birds typical of forest habitats ("High Integrity") or has more generalist birds ("Low Integrity"). See "Project Information" on the "About"" tab for more information on this index. </li>  
+      <li><strong>Individual Species: </strong> displays how many times a selected species was detected at each monitoring point. The value displayed can be filtered by sampling year, distance from observer, and visit (described below).</li>
+      <li><strong>Number of Species: </strong> displays the number of species detected at each monitoring point. The value displayed can be filtered by sampling year, distance from observer, and visit (described below). Hovering over a point provides a popup that identifies the monitoring point and the total number of species detected. Clicking on a point will give you the full species list for that point. </li>
+      <li><strong>Bird Community Index (BCI): </strong> displays the BCI score for each monitoring point. The BCI is an index of biotic integrity developed by O’Connell and others (1998, 2000) for central Appalachian bird communities. Higher BCI scores (indicating higher biotic integrity) describe a bird community in which specialists are well-represented relative to generalists. See "Project Information" on the "About the Project" tab for more information on this index. </li>
       </ul>
+
+<p><strong>Year: </strong>
+    You can choose which year to display using the year selector.
+</p>
+
   <p><strong>Distance from Observer:</strong>
-When birds are observed, the monitoring crew notes if the bird was 0-50 meters away, 50-100 meters away or further than 100 meters. Birds that are closer are easier to detect and identify, so the closer data may be more accurate. However, using all the data may gives a better indication of the species present in an area. </p>
+When birds are detected during point counts, the observer estimates how far the bird is from the observer and assigns it to one of several distance bands. You can filter the results displayed by increasingly large distance bands using these options. </p>
+
+
+<p><strong>Visit: </strong>
+      During each year of sampling, multiple point counts are conducted at each monitoring point (referred to as repeat visits). We do this because some birds are not detected by the observer conducting the point count and the repeat visits allow us to account for and correct for these “misses.” You can use these options to map the birds observed in each visit or the maximum number observed across all visits.
+    </p>
 
 <p><strong>Species: </strong>
-      This option is only available when "Individual Species" is chose under "Data to Map". This allows you to select which species to display.
+          This option is only available when "Individual Species" is selected under "Data to Map". This allows you to select which species to display.
     </p>
-    
-<p><strong>Visit: </strong>
-      This option is only available when "Individual Species" is chose under "Data to Map". This allows you map the birds observed in the first visit (usually late spring to early summer), the second visit (usually early-mid summer) or the maximum number observed for either visit. As the same individual birds can be observed in both visits, it is recommenced that you do not add the number of birds from the two visits.
+
+<p><strong>Names: </strong>
+      This option is only available when "Individual Species" is selected under "Data to Map". Use this to indicate if you want to use common names, Latin names, or American Ornithological Union (AOU) codes.
     </p>
-      <p><strong>Year: </strong>
-      Monitoring points are visited twice each year. You can choose which year to display using the slider.
-    </p>
-      <p><strong>Names: </strong>
-      Use this to indicate if you want to use common names, Latin names, or American Ornithological Union (AOU) codes.
-    </p>
-      <p><strong>eBird Data: </strong>
-      This allows you to display citizen science data collected via <a href="http://www.ebird.org"> eBird </a>. eBird is not affiliated with the National Park Service. Data from the District of Columbia, Maryland, Virginia and West Virginia is displayed.
-    </p>
-      <p><strong>Days of data: </strong>
-      When you display eBird data you can chose how many days worth of data you wish to see. By default you will see data from the last two weeks, but you can see as little as the previous day's data and as much as the previous month's data.
-    </p>
-      <br>
-      <h4>Map Layers</h4>
-      <p> This control allows you to add an additional data layers onto the map. Currently two options are available:
-      </p>
-      <p><strong>Ecoregions: </strong> This selection will map the <a href="https://catalog.data.gov/dataset/omerniks-level-iii-ecoregions-of-the-conterminous-united-states">Level III ecoregions (Omernik 1995)</a> onto the parks. Ecoregions are areas have similar ecosystems. </p>
-        <p><strong>Forested Areas: </strong>This selection will highlight which areas of the parks are forested. This map is based on information from the <a href="http://www.mrlc.gov">2011 National Land Cover Database (Jin et al. 2013).</a> </p>
-            
-            <br>
+
             <h4> Zoom </h4>
             <p><strong>Zoom to: </strong>You can select a park from the drop-down menu and click on "Go" to zoom the map to that park.</p>
-            <p><strong>Point size: </strong>By default, the monitoring points are displayed as 50m radius when the map is zoomed in. The enlarge plots control allow you to enlarge them to 100m which is easier to see.</p>
-            <br>
-            <h4>Show</h4>
-            The show panel allows you to hide controls and legends to better view the map. Note that the "Layer Legend" panel will only appear if a map layer is selected. 
-          </div>
-            </body>
-            </html>
+            <p><strong>Point size: </strong>When a map is zoomed in, monitoring points are displayed with a default radius. The “point size” control allow you to choose among different radii to suit your visualization needs.</p>
+<br>
+
+</div>
+</body>
+</html>
