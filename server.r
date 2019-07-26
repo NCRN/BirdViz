@@ -445,7 +445,7 @@ shinyServer(function(input,output,session){
   
   IndividualPointTitle<-reactive({paste(BirdName()," Data")})
   
-  IndividualPointCaption<-reactive({  paste0('Number of ',BirdName(),'s detected at each monitoring point from ', input$TableYear2[1],' to ', input$TableYear2[2],'. This table includes birds found at ',BandOut(),' from the observer. To see all instances where the bird was detected, and not instances where the bird was absent, choose the "Individual Species - All detections" table instead.')
+  IndividualPointCaption<-reactive({  paste0('Number of ',BirdName(),'s detected at each monitoring point from ', min(input$TableYear2),' to ', max(input$TableYear2),'. This table includes birds found at ',BandOut(),' from the observer. To see all instances where the bird was detected, and not instances where the bird was absent, choose the "Individual Species - All detections" table instead.')
   })
   
   IndividualParkTitle<-reactive({paste("Mean number of ",BirdName()," Detected per Point")})
