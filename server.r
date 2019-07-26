@@ -26,8 +26,7 @@ ParkBounds<-read.csv(file="./Data/boundboxes.csv", as.is=TRUE)
 
 shinyServer(function(input,output,session){
   
-  #  output$Test<-renderPrint(BoundsUse()[1])
-  
+
   
   #### Toggles ####
   observe({
@@ -61,6 +60,11 @@ shinyServer(function(input,output,session){
     onclick(id="CloseAboutLists", expr= toggle(id="AboutListsPanel")) 
   })
   
+  
+  #### ReactiveValues
+  
+  RV<-reactiveValues(Map=F, Table=F, Plot=F)
+  
   #### Map Panel ####
   
   #### Reactive Map UI Widgets ####
@@ -71,7 +75,6 @@ shinyServer(function(input,output,session){
       as.character(seq(as.numeric(getDesign(BirdData, info= "visits")[[1]],1)))), selected="All",inline=TRUE ) 
   })
   
-  output$Test<-renderText(MapBandUse())
 
   ##Bands
   BandsAvailable<-getDesign(BirdData, info="bands")[[1]]
@@ -84,6 +87,8 @@ shinyServer(function(input,output,session){
   })
   
   
+  
+  
   ## Values to use for map
   
   MapBandUse<-reactive({seq(as.numeric(input$MapBand)) })# if(input$MapBand=="All") NA else seq(as.numeric(input$MapBand)) })
@@ -91,28 +96,37 @@ shinyServer(function(input,output,session){
   
   ## List of species for map - needs to be named list.
   BirdNames<-reactive({
-    BN<-getChecklist(object =  BirdData,
-                     #years=input$MapYear,
-                     band=MapBandUse())
+    BN<-getChecklist(object =  BirdData, band=MapBandUse())
     TempNames<-getBirdNames(object=BirdData[[1]], names=BN, in.style="AOU", out.style=input$MapNames)
     TempNames[is.na(TempNames)]<-"Needs Name"
     names(BN)<-TempNames
     BN [order(TempNames)]
   })
+  observeEvent(input$MapSpecies, RV$Map<-TRUE, ignoreInit = T)
   
-  observe({
-    BirdNames()
-    isolate(
-      updateSelectizeInput(session,inputId="MapSpecies",label="Species", choices=c(BirdNames()),
-                           options = list(placeholder='Choose a species'),server = FALSE,
-                           selected=BirdNames()[1]) 
-    )
-  })
+  observeEvent(BirdNames(), 
+               handlerExpr = {
+                 updateSelectizeInput(session,inputId="MapSpecies",label="Species", 
+                                      choices=BirdNames(), options = list(placeholder='Choose a species'),
+                                      selected=if(RV$Map) input$MapSpecies else BirdNames()[1])
+               }
+               
+  )
+
   
+
   #### Zoom Control for Map ####
   output$ParkZoomControl<-renderUI({
     selectInput(inputId="ParkZoom",label=NULL,selectize=FALSE,
                 choices=c("All Parks"=Network,ParkList))
+  })
+  ## Zoom radius
+  BandZoomChoices<-BandsAvailable$MaxDistance
+  names(BandZoomChoices)<-paste0(BandsAvailable$MaxDistance, " meters")
+  
+  output$MapBandZoomSelect<-renderUI({
+    radioButtons(inputId = "PointSize", label="PointSize", choices=BandZoomChoices, inline=T)
+    
   })
   
   ##### Set up Map ####
@@ -179,17 +193,17 @@ shinyServer(function(input,output,session){
   ### based on input$mapvalues, get relevant data and add it to map
   
   circleData<-reactive({
+    req(input$MapValues, input$MapVisit)
+    req(MapBandUse() | is.na(MapBandUse()) ) # needed as NA indicates "any distace" here.
     P<-getPoints(BirdData,years=input$MapYear)
     switch(input$MapValues,
            
-           richness={withProgress(message="Calculating...  Please Wait",value=1,
-                return(P %>% mutate(Values=map_dbl(P$Point_Name, .f=~birdRichness(BirdData, years=input$MapYear, band=MapBandUse(), 
-                      visits= MapVisitUse(),points = .x)) )
-           ))},
+           richness= return(P %>% left_join(birdRichness(BirdData, years=input$MapYear, band=MapBandUse(),
+                                                    visits=MapVisitUse(), byPoint=T) %>% rename(Values=Richness))
+
+           ),
            
            individual={
-             req(MapBandUse() | is.na(MapBandUse()) ) # needed as NA indicates "any distace" here.
-             req(input$MapVisit)
              X<-CountXVisit(object=BirdData,years=input$MapYear,AOU=input$MapSpecies, band=MapBandUse(), visits=MapVisitUse(), 
                                                                                               max=(input$MapVisit=="All") )
              if(input$MapVisit=="All") return(P %>% left_join(X %>% dplyr::select(Point_Name,Max) %>% rename(Values=Max))) else{
@@ -197,8 +211,11 @@ shinyServer(function(input,output,session){
              }
            },
            bci={withProgress(message="Calculating...  Please Wait",value=1,
-              return(P %>% left_join(BCI(object=BirdData, years=input$MapYear,points=P$Point_Name, band=MapBandUse(), visits=MapVisitUse(),type= {if(Network == "NETN") "NETN_Forest_BCI" else "Cent_Appal"}) %>% 
-                mutate(Values=factor(BCI_Category, levels=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))) %>% 
+              return(P %>% left_join(BCI(object=BirdData, years=input$MapYear,points=P$Point_Name, band=MapBandUse(), 
+                              visits=MapVisitUse(),type= {if(Network == "NETN") "NETN_Forest_BCI" else "Cent_Appal"}) %>% 
+                arrange(BCI_Category) %>% 
+                rename(Values=BCI_Category) %>% 
+                mutate(Values=factor(Values, levels=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))) %>% 
                 dplyr::select(Point_Name,BCI,Values) )  )
            )}
     )
@@ -221,7 +238,7 @@ shinyServer(function(input,output,session){
     switch(input$MapValues,
            richness= colorNumeric(palette="viridis",domain=circleData()$Values, reverse = TRUE),
            individual=colorFactor(palette="viridis", domain=0:8,reverse = TRUE),
-           bci=colorFactor(palette="viridis", reverse = TRUE,
+           bci=colorFactor(palette="BuGn",ordered = TRUE,
                            domain=c("Low Integrity","Medium Integrity","High Integrity","Highest Integrity"))
     )
   })  
@@ -275,8 +292,7 @@ shinyServer(function(input,output,session){
   observeEvent(input$BirdMap_shape_click, {  
   
     ShapeClick<-input$BirdMap_shape_click
-    output$Test<-renderText(class(ShapeClick$lat))
-     
+
     leafletProxy("BirdMap") %>% 
       clearPopups() %>% {
         switch(ShapeClick$group,
@@ -346,7 +362,8 @@ shinyServer(function(input,output,session){
   })
   
   
-  TableParkUse<-reactive({ if (input$ParkTable=="All") BirdData else BirdData[input$ParkTable] })  
+  TableParkUse<-reactive({ req(input$ParkTable)
+    if (input$ParkTable=="All") BirdData else BirdData[input$ParkTable] })  
   
   
   output$TableBandSelect<-renderUI({
@@ -364,10 +381,17 @@ shinyServer(function(input,output,session){
     names(BN2)<-TempNames2
     BN2 [order(TempNames2)]
   })
+
+  observeEvent(input$TableSpecies, RV$Table<-TRUE, ignoreInit = T)
   
-  observe({
-    updateSelectizeInput(session,inputId="TableSpecies",label="Species", choices=BirdTableNames())
-  })
+  observeEvent(BirdTableNames(), 
+    handlerExpr = {
+      updateSelectizeInput(session,inputId="TableSpecies",label="Species", 
+          choices=BirdTableNames(), options = list(placeholder='Choose a species'),
+          selected=if(RV$Table) input$TableSpecies else BirdTableNames()[1])
+      }
+  
+    )
   
   
   #### Bird name to use for titles and captions ####
@@ -412,16 +436,16 @@ shinyServer(function(input,output,session){
                 summarize_at(vars(starts_with("Visit"), Max), mean, na.rm=T) %>%
                 dplyr::select_at(vars(starts_with("Visit"), Max)))) %>% 
       round(digits=2) %>% 
-      rename_at(vars(starts_with("Visit")),  ~sub("Visit", "Mean Visit ", .x)) %>% 
-      dplyr::select(`Mean Visit 1`,`Mean Visit 2`, Maximum=Max) %>%  
+      rename_at(vars(starts_with("Visit")),  ~sub("Visit", "Mean Visit ", .x)) %>%
+      rename(Maximum=Max) %>% 
       t() %>%
-      "colnames<-"(c(getParkNames(BirdData),"All Parks"))
+      "colnames<-"(c(getParkNames(BirdData)[getParkNames(BirdData,"code") %in% unique(IndividualBase()$Admin_Unit_Code)], "All Parks"))
   })
   
   
   IndividualPointTitle<-reactive({paste(BirdName()," Data")})
   
-  IndividualPointCaption<-reactive({  paste0('Number of ',BirdName(),'s detected at each monitoring point from ', input$TableYear2[1],' to ', input$TableYear2[2],'. This table includes birds found at ',BandOut(),' from the observer. To see all instances where the bird was detected, and not instances where the bird was absent, choose the "Individual Species - All detections" table instead.')
+  IndividualPointCaption<-reactive({  paste0('Number of ',BirdName(),'s detected at each monitoring point from ', min(input$TableYear2),' to ', max(input$TableYear2),'. This table includes birds found at ',BandOut(),' from the observer. To see all instances where the bird was detected, and not instances where the bird was absent, choose the "Individual Species - All detections" table instead.')
   })
   
   IndividualParkTitle<-reactive({paste("Mean number of ",BirdName()," Detected per Point")})
@@ -437,14 +461,10 @@ shinyServer(function(input,output,session){
   ####  Richness tables, titles, captions ####
   
   RichnessPoint<-reactive({
-    withProgress(message="Calculating...  Please Wait",value=1,{
-      getPoints(TableParkUse(),years=input$TableYear) %>% 
-        group_by(Point_Name) %>% 
-        mutate(Species=birdRichness(TableParkUse(),points=Point_Name, years=input$TableYear, band=TableBandUse() )) %>% 
-        ungroup() %>%
-        mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code])), "Point Name"=factor(Point_Name), Year=input$TableYear) %>% 
-        dplyr::select(Park,`Point Name`, Year, Species )
-    })
+    getPoints(TableParkUse(),years=input$TableYear) %>% 
+    left_join(birdRichness(TableParkUse(),years=input$TableYear, band=TableBandUse(),byPoint=T))  %>% 
+    mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code]))) %>% 
+    dplyr::select(Park,`Point Name`=Point_Name, Species=Richness )
   })
   
   RichnessPark<-reactive({
@@ -452,8 +472,9 @@ shinyServer(function(input,output,session){
                  birdRichness(BirdData, years=input$TableYear, band=TableBandUse() ))) %>%
       rbind (c(sapply(getPoints(BirdData,years=input$TableYear,output="list"),nrow),
                nrow(getPoints(BirdData,years=input$TableYear)))) %>% 
-      "names<-"(c(getParkNames(BirdData),"All Parks")) %>% 
-      "row.names<-"(c("Species","Monitoring Points"))
+      "colnames<-"(c(getParkNames(BirdData),"All Parks")) %>% 
+      "row.names<-"(c("Species","Monitoring Points")) %>% 
+      select_if(colSums(.)>0) 
   })
   
   RichnessPointTitle<-reactive({
@@ -480,11 +501,12 @@ shinyServer(function(input,output,session){
   BCIPoint<-reactive({
     BCIBase() %>% 
     {if (input$ParkTable!="All") filter(.,Admin_Unit_Code==input$ParkTable) else .} %>%
-      dplyr::select(Point_Name,BCI,BCI_Category) %>% 
-      rename("Point Name"=Point_Name, "BCI Category"=BCI_Category)
+      dplyr::select(Admin_Unit_Code, Point_Name,BCI,BCI_Category) %>% 
+      mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code]))) %>% 
+      select(Park, "Point Name"=Point_Name, "BCI Category"=BCI_Category)
   })
-  
-  BCIPark<-reactive({
+
+    BCIPark<-reactive({
     BCIBase() %>% 
       group_by(Admin_Unit_Code) %>% 
       summarize("Mean BCI" = round (mean(BCI), digits=1)) %>%    
@@ -517,11 +539,9 @@ shinyServer(function(input,output,session){
   ### Point Table title:
   
   output$TableTitle<-renderText({
-    req(IndividualPointTitle())
 
     switch(input$TableValues,
            individual=IndividualPointTitle(),
-           detects=DetectsPointTitle(),
            richness=RichnessPointTitle(),
            bci=BCIPointTitle()
     )
@@ -533,7 +553,6 @@ shinyServer(function(input,output,session){
 
     switch(input$TableValues,
            individual=IndividualPointCaption(),
-           detects=DetectsPointCaption(),
            richness= RichnessPointCaption(),
            bci=BCIPointCaption() 
     )
@@ -542,11 +561,9 @@ shinyServer(function(input,output,session){
   ### Park Table title:
   
   output$ParkTableTitle<-renderText({
-    req(BirdName())
-    
+
     switch(input$TableValues,
            individual=IndividualParkTitle(),
-           detects=DetectsParkTitle(),
            richness=RichnessParkTitle(),
            bci=BCIParkTitle()
     )
@@ -554,11 +571,9 @@ shinyServer(function(input,output,session){
   
   ###Park Table Caption  
   ParkTableCaption<-reactive({
-    req(BirdName()) 
-    
+
     switch(input$TableValues,
            individual=IndividualParkCaption(),
-           detects=DetctsParkCaption(),
            richness=RichnessParkCaption(),
            bci=BCIParkCaption()
     )
@@ -566,21 +581,17 @@ shinyServer(function(input,output,session){
   
   
   PointTableData<-reactive({
-      req(BirdName())
-    
+  req(RichnessPoint())
     switch(input$TableValues,
            individual=IndividualPoint(),
-           detects=DetectsPoint(),
            richness=RichnessPoint(),
            bci=BCIPoint())
   })
   
   ParkTableData<-reactive({
-    req(IndividualPark())
-    
+
     switch(input$TableValues,
            individual=IndividualPark(),
-           detects=DetectsPark(),
            richness=RichnessPark(),
            bci=BCIPark())
   })
@@ -589,8 +600,9 @@ shinyServer(function(input,output,session){
     datatable(
       data=PointTableData(),rownames=F,caption=PointTableCaption(), 
       class="display compact",selection="single", #extensions="TableTools", 
-      options=list(dom = 'T<"clear">lfrtip'
-                   #, tableTools=list(sSwfPath=copySWF('www',pdf=TRUE),aButtons=list('copy','print','csv','pdf'))
+      options=list(dom = 'T<"clear">lfrtip',
+                   lengthMenu=c(10, 25, 100, 250)
+                 #, tableTools=list(sSwfPath=copySWF('www',pdf=TRUE),aButtons=list('copy','print','csv','pdf'))
       )
     ),
     server=F)
@@ -707,9 +719,19 @@ shinyServer(function(input,output,session){
   })
   
   
-  observe({
-    updateSelectizeInput(session,inputId="PlotSpecies",label="Species:", choices=BirdPlotNames(),selected ="AMRO")
-  })
+  
+  observeEvent(input$PlotSpecies, RV$Plot<-TRUE, ignoreInit = T)
+  
+  observeEvent(BirdPlotNames(), 
+               handlerExpr = {
+                 updateSelectizeInput(session,inputId="PlotSpecies",label="Species", 
+                                      choices=BirdPlotNames(), options = list(placeholder='Choose a species'),
+                                      selected=if(RV$Plot) input$PlotSpecies else BirdPlotNames()[1])
+               }
+               
+  )
+  
+
   
   PlotParkName<-reactive(if (input$ParkPlot=="All") paste("All",Network,"Parks") else getParkNames(PlotParkUse(),"short" ))
   
@@ -728,7 +750,7 @@ shinyServer(function(input,output,session){
   observe({
     if(input$GraphOutputs=="Detects"){
       output$DetectsPlot <- renderPlot({
-        req(input$ParkPlot)
+        req(input$ParkPlot, input$PlotSpecies)
         detectsPlot(object= PlotParkUse(),band=PlotBandUse(),AOU=input$PlotSpecies, visits =PlotVisitUse(),
                     max=(input$PlotVisit=="All"), plot_title = "")
       })}
@@ -826,13 +848,15 @@ shinyServer(function(input,output,session){
   MonitoringList<-reactive({
     req(input$ParkList)
     tbl_df(data.frame( 'Latin.Name'= getChecklist(object=BirdData[[input$ParkList]], points=ListPoints(),out.style="Latin"))) %>% 
-      mutate('Common Name' = getBirdNames(object=BirdData[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "common")) %>% 
-      rename('Latin Name'= Latin.Name) %>% arrange(`Common Name`) %>%  .[,c(2,1)]
+      mutate('Common Name' = getBirdNames(object=BirdData[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "common"),
+          'AOU Code' = getBirdNames(object=BirdData[input$ParkList], names=Latin.Name, in.style="Latin",out.style = "AOU")) %>% 
+      select(`Common Name`, 'Latin Name'= Latin.Name, `AOU Code`) %>% arrange(`Common Name`) 
   })
   
   
   output$SpeciesList<-DT::renderDataTable(server=FALSE,
     datatable(rownames=F,caption="Species List", class="display compact",selection="single",
+              options=list(lengthMenu=c(10, 25, 100, 250)),
       data=switch(input$SpeciesListType,
         All=NPSpeciesList(),
         Points=MonitoringList()
