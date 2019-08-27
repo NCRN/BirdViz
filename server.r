@@ -8,7 +8,9 @@ library(rgdal)
 library(DT)
 library(tidyr)
 library(shinyjs)
+library(htmlwidgets)
 library(jsonlite, pos=100)
+
 
 BirdData<-switch(Network,
                  ERMN= importERMNbirds("./Data/ERMN_NewProtocol"),
@@ -250,12 +252,14 @@ shinyServer(function(input,output,session){
   })
   
   #### Add Legend ####
+  
   observe({
+    #due to poor placement of "Not Visited" in legend, NA values are filtered here - revisit when that RLeaflet bug is fixed.
     leafletProxy("BirdMap") %>%
       removeControl(layerId="CircleLegend") %>%
       addLegend(map=., layerId="CircleLegend",pal=MapColors(),
-                values=LegendValues(),opacity=1,
-                na.label="Not Visited", title=circleLegend(), className="panel panel-default info legend" )
+                values=LegendValues()[(!is.na(LegendValues()))],opacity=1,na.label="Not Visited", 
+                title=circleLegend(), className="panel panel-default info legend" )
   })
   
   #### Popup for user hovering on a circle ####
