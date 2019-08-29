@@ -434,7 +434,7 @@ shinyServer(function(input,output,session){
   IndividualPark<-reactive({
     IndividualBase() %>% 
       group_by(Admin_Unit_Code) %>% 
-      summarize_at(vars(starts_with("Visit"), Max), mean, na.rm=T) %>% 
+      dplyr::summarize_at(vars(starts_with("Visit"), Max), mean, na.rm=T) %>% 
       dplyr::select_at(vars(starts_with("Visit"), Max)) %>%
       rbind(c(IndividualBase() %>% 
                 summarize_at(vars(starts_with("Visit"), Max), mean, na.rm=T) %>%
@@ -513,7 +513,7 @@ shinyServer(function(input,output,session){
     BCIPark<-reactive({
     BCIBase() %>% 
       group_by(Admin_Unit_Code) %>% 
-      summarize("Mean BCI" = round (mean(BCI), digits=1)) %>%    
+      dplyr::summarize("Mean BCI" = round (mean(BCI), digits=1)) %>%    
       dplyr::select(`Mean BCI`) %>%
       rbind(round(mean(BCIBase()$BCI),digits=1 )) %>% 
       mutate("Park BCI Category"=
