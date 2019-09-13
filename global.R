@@ -1,13 +1,13 @@
 #### Network Specific Settings ####
 
-Network<-"NCRN"
+Network<-"ERMN"
 
 NetworkURL<-switch(Network,
                    ERMN=, GULN=, MIDN=, NCRN=, NETN = paste0('https://www.nps.gov/im/',tolower(Network),'/index.htm')
 )
 
 Years<-switch(Network,
-              ERMN=list(Start=2011, End=2017),
+              ERMN=list(Start=2011, End=2019),
               #GULN=list(Start=NA, End=NA),
               MIDN=list(Start=2009, End=2018),
               NCRN=list(Start=2007, End=2017),
