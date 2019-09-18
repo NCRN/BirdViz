@@ -13,7 +13,8 @@ library(jsonlite, pos=100)
 
 
 BirdData<-switch(Network,
-                 ERMN= importERMNbirds("./Data/ERMN_NewProtocol"),
+                 ERMN= importERMNbirds("./Data/ERMN"),
+                 ERMN2007= importERMNbirds2007("./Data/ERMN2007"),
                  GULN= importGULNbirds("./Data/GULN"),
                  MIDN= importMIDNbirds("./Data/MIDN"),
                  NCRN= importNCRNbirds("./Data/NCRN"),
