@@ -450,14 +450,14 @@ shinyServer(function(input,output,session){
   
   IndividualPointTitle<-reactive({paste(BirdName()," Data")})
   
-  IndividualPointCaption<-reactive({  paste0('Number of ',BirdName(),'s detected at each monitoring point from ', min(input$TableYear2),' to ', max(input$TableYear2),'. This table includes birds found at ',BandOut(),' from the observer. To see all instances where the bird was detected, and not instances where the bird was absent, choose the "Individual Species - All detections" table instead.')
+  IndividualPointCaption<-reactive({  paste0('Number of ',BirdName(),'s detected at each monitoring point from ', min(input$TableYear2),' to ', max(input$TableYear2),'. This table includes birds detected at ',BandOut(),' from the observer. To see all instances where the bird was detected, and not instances where the bird was absent, choose the "Individual Species - All detections" table instead.')
   })
   
   IndividualParkTitle<-reactive({paste("Mean number of ",BirdName()," Detected per Point")})
   
   IndividualParkCaption<-reactive({
     req(BirdName(), input$TableYear, BandOut())
-    paste0("Mean number of ",BirdName(),"s detected per monitoring point in each park from ",input$TableYear2[1]," to ", input$TableYear2[2],". 
+    paste0("Mean number of ",BirdName(),"s detected per monitoring point in each park from ",min(input$TableYear2)," to ", max(input$TableYear2),". 
     This is the number of birds detected during a visit divided by the number of monitoring points visited. This table includes birds found at ",
     BandOut()," from the observer.") 
   })
@@ -526,17 +526,17 @@ shinyServer(function(input,output,session){
   
   BCIPointTitle<-reactive(paste0("Bird Community Index by Point: ",input$TableYear))
   
-  BCIPointCaption<-reactive({paste0("The Bird Comminity Index (BCI) for each monitoring point during ", input$TableYear," at ", BandOut(),
+  BCIPointCaption<-reactive({paste0("The Bird Comminity Index (BCI) for each monitoring point during ", input$TableYear," based on detections at ", BandOut(),
     " from the observer. Note that monitoring began later at some points than at others. The BCI  is an index of ecological integrity 
-    (O'Connell et al., 1998, 2000). Each point is assinged a BCI score based on the species of birds found. Scores are then assigned to one of four 
-    BCI categories: Low, Medium. High or Highest Integiry. These scores are averaged to give a park-wide score. Note that the BCI of individual points 
+    (O'Connell et al., 1998, 2000). Each point is assigned a BCI score based on the species of birds found. Scores are then assigned to one of four 
+    BCI categories: Low, Medium, High or Highest Integrity. These scores are averaged to give a park-wide score. Note that the BCI of individual points 
     may fluctuate from year to year due to random sampling as well as due to changes in the environment.") })
   
   BCIParkTitle<-reactive({paste0("Bird Community Index by Park: ",input$TableYear) })
   
-  BCIParkCaption<-reactive({  paste0("The Bird Comminity Index (BCI) for each park during.", input$TableYear," based on deteections at ", BandOut(),
-    " from the observer. The BCI  is an index of ecological integrity (O'Connell et al., 1998, 2000). Each park s assinged a BCI score by averaging point 
-    scores, which in turn are based on the species of birds found. Scores are then assigned to one of four BCI categories: Low, Medium. High or Highest 
+  BCIParkCaption<-reactive({  paste0("The Bird Comminity Index (BCI) for each park during ", input$TableYear," based on detections at ", BandOut(),
+    " from the observer. The BCI  is an index of ecological integrity (O'Connell et al., 1998, 2000). Each park is assigned a BCI score by averaging point 
+    scores, which in turn are based on the species of birds found. Scores are then assigned to one of four BCI categories: Low, Medium, High or Highest 
     Integrity.")})
   
   ####Create Tables and Title outputs ####

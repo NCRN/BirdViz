@@ -3,8 +3,8 @@ library(leaflet)
 library(shinyjs)
 
 navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.gif',
-                      alt='Forest Bird Visualizer'> </a> Forest Bird Visualizer</div>"),
-           position = "static-top",inverse=TRUE, collapsible = FALSE, fluid=TRUE, windowTitle = paste(Network,"Forest Birds"),
+                      alt='Land Bird Visualizer'> </a> Land Bird Visualizer</div>"),
+           position = "static-top",inverse=TRUE, collapsible = FALSE, fluid=TRUE, windowTitle = paste(Network,"Land Birds"),
            theme="https://www.nps.gov/lib/bootstrap/3.3.2/css/nps-bootstrap.min.css", id="MainNavBar",
           
   tabPanel(title="Map", style="padding: 0",
