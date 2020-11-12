@@ -9,6 +9,7 @@ library(DT)
 library(tidyr)
 library(shinyjs)
 library(htmlwidgets)
+library(Hmisc)
 library(jsonlite, pos=100)
 
 
@@ -422,9 +423,9 @@ shinyServer(function(input,output,session){
   })
   
   
-  #### Data, Captons, Titles, for the Tables ####
+  #### Data, Captions, Titles, for the Tables ####
   
-  #### Individual tables, titles, captions, basedata used to calculate other tables ####
+  #### Individual tables, titles, captions, base data used to calculate other tables ####
   
   IndividualBase<-reactive({
     req(input$TableYear, input$TableBand, input$TableSpecies)
@@ -474,6 +475,7 @@ shinyServer(function(input,output,session){
   ####  Richness tables, titles, captions ####
   
   RichnessPoint<-reactive({
+    req(TableParkUse(), input$TableYear, TableBandUse() )
     getPoints(TableParkUse(),years=input$TableYear) %>% 
     left_join(birdRichness(TableParkUse(),years=input$TableYear, band=TableBandUse(),byPoint=T))  %>% 
     mutate(Park=factor(getParkNames(object=BirdData[Admin_Unit_Code]))) %>% 
@@ -547,7 +549,7 @@ shinyServer(function(input,output,session){
     scores, which in turn are based on the species of birds found. Scores are then assigned to one of four BCI categories: Low, Medium, High or Highest 
     Integrity.")})
   
-  ####Create Tables and Title outputs ####
+  #### Create Tables and Title outputs ####
   
   ### Point Table title:
   
