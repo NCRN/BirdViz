@@ -19,7 +19,8 @@ BirdData<-switch(Network,
                  GULN= importGULNbirds("./Data/GULN"),
                  MIDN= importMIDNbirds("./Data/MIDN"),
                  NCRN= importNCRNbirds("./Data/NCRN"),
-                 NETN= importNETNbirds("./Data/NETN")
+                 NETN= importNETNbirds("./Data/NETN"),
+                 NCBN= importNCBNbirds("./Data/NCBN")
 )
 
 ParkList<-getParkNames(BirdData, name.class="code")
