@@ -76,7 +76,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
   ),#end of fluidRow
   
   ##### About the Map panel ####
-  hidden(
+  #hidden(
     fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
                left=450,width="500",id="AboutMapPanel",style="padding: 0px",
                div(class="panel-heading", h4("About the Map" )),
@@ -84,7 +84,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
                    includeHTML("./www/AboutMap.html")),
                div(class="panel-footer", 
                    actionButton(inputId="CloseAboutMap",class="btn btn-primary",label="Close"))  )
-  )
+ # )
 ),  #end of Map tab
 
 ####  Tables Tab ####
@@ -144,7 +144,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
     ),
     
     ##### About the tables panel ####
-    hidden(
+   # hidden(
       fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
                  left=475,width="500",id="AboutTablesPanel",style="padding: 0px",
                  div(class="panel-heading", h4("About the Tables" )),
@@ -152,7 +152,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
                      includeHTML("./www/AboutTables.html")),
                  div(class="panel-footer", 
                      actionButton(inputId="CloseAboutTables",class="btn btn-primary",label="Close"))  )
-    )
+   # )
   ),  # end Tables Tab
   
 ####   Graphs Tab ####
@@ -194,7 +194,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
         )
       )
     ),
-    hidden(
+    #hidden(
       fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
                  left=475,width="500",id="AboutGraphsPanel",style="padding: 0px",
                  div(class="panel-heading", h4("About the Graphs" )),
@@ -202,7 +202,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
                      includeHTML("./www/AboutGraphs.html")),
                  div(class="panel-footer", 
                      actionButton(inputId="CloseAboutGraphs",class="btn btn-primary",label="Close"))  )
-    )
+   # )
     
   ), # end graphs tab
 
@@ -221,7 +221,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
     column(8,
            DT::dataTableOutput("SpeciesList")
     ),
-    hidden(
+   # hidden(
       fixedPanel(class="panel panel-primary controls",draggable=TRUE,cursor="auto",top=80,bottom="auto",height="520",
                  left=475,width="500",id="AboutListsPanel",style="padding: 0px",
                  div(class="panel-heading", h4("About the Species Lists" )),
@@ -229,7 +229,7 @@ navbarPage(title=HTML("<div> <a href=", NetworkURL,"> <img src='ah_small_black.g
                      includeHTML("./www/AboutLists.html")),
                  div(class="panel-footer", 
                      actionButton(inputId="CloseAboutLists",class="btn btn-primary",label="Close"))  )
-    )
+  #  )
   ),  # end Species List tab
 
   navbarMenu(title="About the Project",
